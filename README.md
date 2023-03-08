@@ -1,1 +1,1 @@
-# Hello world
+# CloudSimServerless: Serverless extension of CloudSim project

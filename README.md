@@ -1,1 +1,1 @@
-# CloudSimServerless: Serverless extension of CloudSim project
+# CloudSimServerless: A Serverless extension of CloudSim project

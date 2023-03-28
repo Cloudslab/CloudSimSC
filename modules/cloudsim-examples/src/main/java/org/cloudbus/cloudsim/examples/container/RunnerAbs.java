@@ -7,9 +7,9 @@ import org.cloudbus.cloudsim.container.containerSelectionPolicies.PowerContainer
 import org.cloudbus.cloudsim.container.containerSelectionPolicies.PowerContainerSelectionPolicyMaximumUsage;
 import org.cloudbus.cloudsim.container.core.*;
 import org.cloudbus.cloudsim.container.hostSelectionPolicies.*;
-import org.cloudbus.cloudsim.container.resourceAllocatorMigrationEnabled.PowerContainerVmAllocationPolicyMigrationAbstractHostSelection;
-import org.cloudbus.cloudsim.container.resourceAllocatorMigrationEnabled.PowerContainerVmAllocationPolicyMigrationStaticThresholdMC;
-import org.cloudbus.cloudsim.container.resourceAllocatorMigrationEnabled.PowerContainerVmAllocationPolicyMigrationStaticThresholdMCUnderUtilized;
+import org.cloudbus.cloudsim.container.resourceAllocatorMigrationEnabled.PCVmAllocationPolicyMigrationAbstractHostSelection;
+import org.cloudbus.cloudsim.container.resourceAllocatorMigrationEnabled.PCVmAllocationPolicyMigrationStaticThresholdMC;
+import org.cloudbus.cloudsim.container.resourceAllocatorMigrationEnabled.PCVmAllocationPolicyMigrStaticThreshMCUnderUtil;
 import org.cloudbus.cloudsim.container.resourceAllocators.ContainerAllocationPolicy;
 import org.cloudbus.cloudsim.container.resourceAllocators.ContainerAllocationPolicyRS;
 import org.cloudbus.cloudsim.container.resourceAllocators.ContainerVmAllocationPolicy;
@@ -230,14 +230,14 @@ public abstract class RunnerAbs {
 
         if (vmAllocationPolicyName.startsWith("MSThreshold-Over_")) {
             double overUtilizationThreshold = Double.parseDouble(vmAllocationPolicyName.substring(18));
-            vmAllocationPolicy = new PowerContainerVmAllocationPolicyMigrationStaticThresholdMC(hostList, vmSelectionPolicy,
+            vmAllocationPolicy = new PCVmAllocationPolicyMigrationStaticThresholdMC(hostList, vmSelectionPolicy,
                     containerSelectionPolicy, hostSelectionPolicy, overUtilizationThreshold,
                     ConstantsExamples.VM_TYPES,ConstantsExamples.VM_PES, ConstantsExamples.VM_RAM, ConstantsExamples.VM_BW,
                     ConstantsExamples.VM_SIZE, ConstantsExamples.VM_MIPS);
         } else if (vmAllocationPolicyName.startsWith("MSThreshold-Under_")) {
             double overUtilizationThreshold = Double.parseDouble(vmAllocationPolicyName.substring(18, 22));
             double underUtilizationThreshold = Double.parseDouble(vmAllocationPolicyName.substring(24));
-            vmAllocationPolicy = new PowerContainerVmAllocationPolicyMigrationStaticThresholdMCUnderUtilized(hostList,
+            vmAllocationPolicy = new PCVmAllocationPolicyMigrStaticThreshMCUnderUtil(hostList,
                     vmSelectionPolicy, containerSelectionPolicy, hostSelectionPolicy, overUtilizationThreshold,
                     underUtilizationThreshold,ConstantsExamples.VM_TYPES,ConstantsExamples.VM_PES, ConstantsExamples.VM_RAM, ConstantsExamples.VM_BW,
                     ConstantsExamples.VM_SIZE, ConstantsExamples.VM_MIPS );
@@ -246,7 +246,7 @@ public abstract class RunnerAbs {
 
             double overUtilizationThreshold = Double.parseDouble(vmAllocationPolicyName.substring(18, 22));
             double underUtilizationThreshold = Double.parseDouble(vmAllocationPolicyName.substring(24));
-            vmAllocationPolicy = new PowerContainerVmAllocationPolicyMigrationAbstractHostSelection(hostList, vmSelectionPolicy, hostSelectionPolicy, overUtilizationThreshold, underUtilizationThreshold);
+            vmAllocationPolicy = new PCVmAllocationPolicyMigrationAbstractHostSelection(hostList, vmSelectionPolicy, hostSelectionPolicy, overUtilizationThreshold, underUtilizationThreshold);
 
 
         } else {

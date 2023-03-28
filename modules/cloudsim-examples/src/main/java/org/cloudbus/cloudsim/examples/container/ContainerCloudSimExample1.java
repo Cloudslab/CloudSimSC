@@ -26,7 +26,7 @@ import org.cloudbus.cloudsim.container.containerVmProvisioners.ContainerVmRamPro
 import org.cloudbus.cloudsim.container.core.*;
 import org.cloudbus.cloudsim.container.hostSelectionPolicies.HostSelectionPolicy;
 import org.cloudbus.cloudsim.container.hostSelectionPolicies.HostSelectionPolicyFirstFit;
-import org.cloudbus.cloudsim.container.resourceAllocatorMigrationEnabled.PowerContainerVmAllocationPolicyMigrationAbstractHostSelection;
+import org.cloudbus.cloudsim.container.resourceAllocatorMigrationEnabled.PCVmAllocationPolicyMigrationAbstractHostSelection;
 import org.cloudbus.cloudsim.container.resourceAllocators.ContainerAllocationPolicy;
 import org.cloudbus.cloudsim.container.resourceAllocators.ContainerVmAllocationPolicy;
 import org.cloudbus.cloudsim.container.resourceAllocators.PowerContainerAllocationPolicySimple;
@@ -143,7 +143,7 @@ public class ContainerCloudSimExample1 {
              * 7- The container allocation policy  which defines the allocation of VMs to containers.
              */
             ContainerVmAllocationPolicy vmAllocationPolicy = new
-                    PowerContainerVmAllocationPolicyMigrationAbstractHostSelection(hostList, vmSelectionPolicy,
+                    PCVmAllocationPolicyMigrationAbstractHostSelection(hostList, vmSelectionPolicy,
                     hostSelectionPolicy, overUtilizationThreshold, underUtilizationThreshold);
             /**
              * 8- The overbooking factor for allocating containers to VMs. This factor is used by the broker for the

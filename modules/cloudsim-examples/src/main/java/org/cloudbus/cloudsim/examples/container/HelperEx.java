@@ -11,7 +11,7 @@ import org.cloudbus.cloudsim.container.containerVmProvisioners.ContainerVmPe;
 import org.cloudbus.cloudsim.container.containerVmProvisioners.ContainerVmPeProvisionerSimple;
 import org.cloudbus.cloudsim.container.containerVmProvisioners.ContainerVmRamProvisionerSimple;
 import org.cloudbus.cloudsim.container.core.*;
-import org.cloudbus.cloudsim.container.resourceAllocatorMigrationEnabled.PowerContainerVmAllocationPolicyMigrationAbstract;
+import org.cloudbus.cloudsim.container.resourceAllocatorMigrationEnabled.PCVmAllocationPolicyMigrationAbstract;
 import org.cloudbus.cloudsim.container.resourceAllocators.ContainerAllocationPolicy;
 import org.cloudbus.cloudsim.container.resourceAllocators.ContainerVmAllocationPolicy;
 import org.cloudbus.cloudsim.container.schedulers.ContainerCloudletSchedulerDynamicWorkload;
@@ -366,8 +366,8 @@ public class HelperEx {
             data.append(String.format("%.2f", meanTimeBeforeVmMigration) + delimeter);
             data.append(String.format("%.2f", stDevTimeBeforeVmMigration) + delimeter);
 
-            if (datacenter.getVmAllocationPolicy() instanceof PowerContainerVmAllocationPolicyMigrationAbstract) {
-                PowerContainerVmAllocationPolicyMigrationAbstract vmAllocationPolicy = (PowerContainerVmAllocationPolicyMigrationAbstract) datacenter
+            if (datacenter.getVmAllocationPolicy() instanceof PCVmAllocationPolicyMigrationAbstract) {
+                PCVmAllocationPolicyMigrationAbstract vmAllocationPolicy = (PCVmAllocationPolicyMigrationAbstract) datacenter
                         .getVmAllocationPolicy();
 
                 double executionTimeVmSelectionMean = MathUtil.mean(vmAllocationPolicy
@@ -449,8 +449,8 @@ public class HelperEx {
                     "StDev time before a Container migration: %.2f sec",
                     stDevTimeBeforeContainerMigration));
 
-            if (datacenter.getVmAllocationPolicy() instanceof PowerContainerVmAllocationPolicyMigrationAbstract) {
-                PowerContainerVmAllocationPolicyMigrationAbstract vmAllocationPolicy = (PowerContainerVmAllocationPolicyMigrationAbstract) datacenter
+            if (datacenter.getVmAllocationPolicy() instanceof PCVmAllocationPolicyMigrationAbstract) {
+                PCVmAllocationPolicyMigrationAbstract vmAllocationPolicy = (PCVmAllocationPolicyMigrationAbstract) datacenter
                         .getVmAllocationPolicy();
 
                 double executionTimeVmSelectionMean = MathUtil.mean(vmAllocationPolicy
@@ -788,7 +788,7 @@ public class HelperEx {
      */
     public static void writeMetricHistory(
             List<? extends ContainerHost> hosts,
-            PowerContainerVmAllocationPolicyMigrationAbstract vmAllocationPolicy,
+            PCVmAllocationPolicyMigrationAbstract vmAllocationPolicy,
             String outputPath) {
         // for (Host host : hosts) {
         for (int j = 0; j < 10; j++) {
@@ -833,7 +833,7 @@ public class HelperEx {
      */
     public static void printMetricHistory(
             List<? extends ContainerHost> hosts,
-            PowerContainerVmAllocationPolicyMigrationAbstract vmAllocationPolicy) {
+            PCVmAllocationPolicyMigrationAbstract vmAllocationPolicy) {
         for (int i = 0; i < 10; i++) {
             ContainerHost host = hosts.get(i);
 
@@ -980,7 +980,7 @@ public class HelperEx {
 
 
         }
-        PowerContainerVmAllocationPolicyMigrationAbstract vmAllocationPolicy = (PowerContainerVmAllocationPolicyMigrationAbstract) datacenter
+        PCVmAllocationPolicyMigrationAbstract vmAllocationPolicy = (PCVmAllocationPolicyMigrationAbstract) datacenter
                 .getVmAllocationPolicy();
         int numberOfOverUtilization = getNumberofOverUtilization(hosts, vmAllocationPolicy);
 
@@ -1103,7 +1103,7 @@ public class HelperEx {
 
 
     public static int getNumberofOverUtilization(List<? extends ContainerHost> hosts,
-                                                 PowerContainerVmAllocationPolicyMigrationAbstract vmAllocationPolicy) {
+                                                 PCVmAllocationPolicyMigrationAbstract vmAllocationPolicy) {
         int numberOfOverUtilization = 0;
         for (int j = 0; j < hosts.size(); j++) {
             ContainerHost host = hosts.get(j);

@@ -22,10 +22,14 @@ public class ServerlessContainer extends Container {
      */
 
     boolean newContainer = false;
-    public ServerlessContainer(int id, int userId, double mips, int numberOfPes, int ram, long bw, long size, String containerManager, ContainerCloudletScheduler containerCloudletScheduler, double schedulingInterval, boolean newCont) {
+    public boolean reschedule = false;
+    public ServerlessContainer(int id, int userId, double mips, int numberOfPes, int ram, long bw, long size, String containerManager, ContainerCloudletScheduler containerCloudletScheduler, double schedulingInterval, boolean newCont, boolean reschedule) {
         super(id, userId, mips, numberOfPes, ram, bw, size, containerManager, containerCloudletScheduler, schedulingInterval);
         this.newContainer = newCont;
+        setReschedule(reschedule);
     }
+    public void setReschedule(boolean reschedule){this.reschedule = reschedule;}
+    public boolean getReschedule() {return reschedule;}
 
 
 

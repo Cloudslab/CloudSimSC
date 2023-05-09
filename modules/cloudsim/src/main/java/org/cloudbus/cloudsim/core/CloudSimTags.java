@@ -272,6 +272,36 @@ public class CloudSimTags {
 
 	public static final int NextCycle = BASE + 48;
 
+	/**
+	 * Denotes a request to destroy a new container in a {@link Datacenter}.
+	 */
+	public static final int CONTAINER_DESTROY = BASE + 49;
+
+	/**
+	 * Denotes a request to destroy a new container in a {@link Datacenter}
+	 * with acknowledgement information sent by the Datacener.
+	 */
+	public static final int CONTAINER_DESTROY_ACK = BASE + 50;
+
+	/**
+	 * Denotes a request for a deadline checkpoint for a cloudlet
+	 */
+	public static final int DEADLINE_CHECKPOINT = BASE + 51;
+
+	/**
+	 * Denotes a request to reschedule given cloudlet
+	 */
+	public static final int CLOUDLET_RESCHEDULE = 52;
+
+	/**
+	 * Denotes a request to record CPU usage of vm
+	 */
+	public static final int RECORD_CPU_USAGE = 53;
+
+	public static final int CREATE_CLOUDLETS = 54;
+
+	public static final int PREEMPT_CLOUDLET = 55 ;
+
 	/** Private Constructor. */
 	private CloudSimTags() {
 		throw new UnsupportedOperationException("CloudSimTags cannot be instantiated");

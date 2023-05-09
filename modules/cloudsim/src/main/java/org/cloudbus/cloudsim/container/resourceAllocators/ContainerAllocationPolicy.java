@@ -120,7 +120,8 @@ public abstract class ContainerAllocationPolicy {
 			return (List<T>) this.containerVmList;
 		}
 
-	}
+    public abstract boolean allocateVmForContainer(Container container, ContainerVm vm, List<ContainerVm> containerVmList);
+}
 
 
 

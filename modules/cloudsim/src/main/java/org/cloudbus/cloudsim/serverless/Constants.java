@@ -5,6 +5,11 @@ import org.cloudbus.cloudsim.power.models.PowerModelSpecPowerHpProLiantMl110G4Xe
 import org.cloudbus.cloudsim.power.models.PowerModelSpecPowerHpProLiantMl110G5Xeon3075;
 import org.cloudbus.cloudsim.power.models.PowerModelSpecPowerIbmX3550XeonX5670;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.*;
+
 public class Constants {
 
 
@@ -20,6 +25,7 @@ public class Constants {
      */
     public static final int CLOUDLET_LENGTH = 30;
     public static final int CLOUDLET_PES = 1;
+    public static final double[] FUNCTION_PE_SHARE = new double[]{ 0.25, 0.25, 0.25, 0.25};
     public static final double DEADLINE_CHECKPOINT_LOW = 0.65;
     public static final double DEADLINE_CHECKPOINT_HIGH = 0.85;
     public static final double DEADLINE_CHECKPOINT = 0.75;
@@ -60,7 +66,8 @@ public class Constants {
      */
 
     public static final int CONTAINER_TYPES = 3;
-    public static final int[] CONTAINER_MIPS = new int[]{4658, 9320, 18636};
+//    public static final int[] CONTAINER_MIPS = new int[]{4658, 9320, 18636};
+    public static final double[] CONTAINER_MIPS = new double[]{4658, 9320, 18636};
     public static final int[] CONTAINER_PES = new int[]{1, 1, 1};
     public static final int[] CONTAINER_CPU_SHARE = new int[]{128, 128, 128};
     public static final int[] CONTAINER_RAM = new int[]{128, 128, 128};

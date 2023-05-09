@@ -37,6 +37,11 @@ public class containerCloudSimTags {
      * Invoked in the data center.
      */
     public static final int VM_NEW_CREATE = ContainerSimBASE + 11;
+    /**
+     * Denotes that the created container is for cloudlet rescheduling
+     *
+     */
+    public static final int CONTAINER_SUBMIT_FOR_RESCHEDULE =ContainerSimBASE + 12; ;
 
 
     private containerCloudSimTags() {

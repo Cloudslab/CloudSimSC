@@ -21,6 +21,43 @@ public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynam
 
     }
 
+    public double cloudletSubmit(Cloudlet cl, double fileTransferTime, ServerlessInvoker vm) {
+        //System.out.println("Cloudlet scheduler:CLoudlet submit : total MIPS of container "+getTotalMips());
+        ResCloudlet rcl = new ResCloudlet(cl);
+        if ((currentCpus - usedPes) >= cl.getNumberOfPes()) {
+            rcl.setCloudletStatus(Cloudlet.INEXEC);
+            //vm.getRunningCloudletStack().push((ServerlessTasks)cl);
+            boolean added = false;
+            for(int x=0; x< vm.getRunningCloudletList().size(); x++){
+                if((((ServerlessTasks) cl).getArrivalTime()+((ServerlessTasks) cl).getMaxExecTime()<=vm.getRunningCloudletList().get(x).getArrivalTime()+vm.getRunningCloudletList().get(x).getMaxExecTime())){
+                    vm.getRunningCloudletList().add(x,((ServerlessTasks) cl));
+                    added = true;
+                    break;
+                }
+            }
+            if(added == false){
+                vm.getRunningCloudletList(). add((ServerlessTasks) cl);
+            }
+            for (int i = 0; i < cl.getNumberOfPes(); i++) {
+                rcl.setMachineAndPeId(0, i);
+            }
+            getCloudletExecList().add(rcl);
+            //System.out.println("Cloudlet "+cl.getCloudletId()+" is added to exec list of container "+ ((ServerlessTasks) cl).getContainerId());;
+            usedPes += cl.getNumberOfPes();
+            vm.addToVmTaskExecutionMap((ServerlessTasks)cl,vm);
+        } else {// no enough free PEs: go to the waiting queue
+
+            /** Cloudlet waits till the current one finishes*/
+            rcl.setCloudletStatus(Cloudlet.QUEUED);
+            getCloudletWaitingList().add(rcl);
+            return 0.0;
+        }
+
+
+
+        return getEstimatedFinishTime(rcl, getPreviousTime());
+    }
+
     public double updateContainerProcessing(double currentTime, List<Double> mipsShare, ServerlessInvoker vm) {
         setCurrentMipsShare(mipsShare);
         int cpus=0;

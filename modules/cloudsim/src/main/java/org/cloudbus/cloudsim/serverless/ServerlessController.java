@@ -1,6 +1,7 @@
 package org.cloudbus.cloudsim.serverless;
 
 import com.opencsv.CSVWriter;
+import javafx.util.Pair;
 import org.cloudbus.cloudsim.*;
 import org.cloudbus.cloudsim.container.containerProvisioners.ContainerBwProvisionerSimple;
 import org.cloudbus.cloudsim.container.containerProvisioners.ContainerPe;
@@ -15,7 +16,6 @@ import org.cloudbus.cloudsim.container.hostSelectionPolicies.HostSelectionPolicy
 import org.cloudbus.cloudsim.container.lists.ContainerList;
 import org.cloudbus.cloudsim.container.lists.ContainerVmList;
 import org.cloudbus.cloudsim.container.resourceAllocatorMigrationEnabled.PCVmAllocationPolicyMigrationAbstractHostSelection;
-import org.cloudbus.cloudsim.container.resourceAllocators.ContainerAllocationPolicy;
 import org.cloudbus.cloudsim.container.resourceAllocators.ContainerVmAllocationPolicy;
 import org.cloudbus.cloudsim.container.schedulers.ContainerVmSchedulerTimeSharedOverSubscription;
 import org.cloudbus.cloudsim.container.utils.IDs;
@@ -41,28 +41,35 @@ import java.util.*;
 
 public class ServerlessController extends ContainerDatacenterBroker {
 
-    private static List<ServerlessInvoker> vmList = new ArrayList<ServerlessInvoker>();
-    private static List<ServerlessInvoker> vmIdleList = new ArrayList<>();
-    private static List<Container> containerList = new ArrayList<Container>();
-    private static List<ServerlessTasks> cloudletList = new ArrayList<ServerlessTasks>();
-    private static int overBookingfactor;
-    private Queue<Double> cloudletArrivalTime = new LinkedList<Double>();
+    protected List<ServerlessInvoker> vmIdleList = new ArrayList<>();
+    protected List<Container> containerList = new ArrayList<Container>();
+    protected List<ServerlessTasks> cloudletList = new ArrayList<ServerlessTasks>();
+    private static int overBookingfactor = 0;
+    /**
+     * The arrival time of each serverless request
+     */
+    protected Queue<Double> cloudletArrivalTime = new LinkedList<Double>();
+    /**
+     * The serverless function requests queue
+     */
+    protected Queue<ServerlessTasks> cloudletQueue = new LinkedList<ServerlessTasks>();
     /**
      * The task type and vm map of controller - contains the list of vms running each function type
      */
-    private Map<String, ArrayList<ServerlessInvoker>> functionVmMap = new HashMap<String, ArrayList<ServerlessInvoker>>();
-    private Queue cloudletQueue = new LinkedList<ServerlessTasks>();
-    private List<ServerlessTasks> toSubmitOnContainerCreation = new ArrayList<ServerlessTasks>();
-    private List<Double> averageVmUsageRecords = new ArrayList<Double>();
-    private List<Double> meanAverageVmUsageRecords = new ArrayList<Double>();
-    private List<Integer> vmCountList = new ArrayList<Integer>();
-    private List<Double> meanSumOfVmCount = new ArrayList<Double>();
-    private double timeInterval = 50.0;
-    private double cloudletSubmitClock = 0;
-    private Map<ServerlessInvoker, ArrayList<ServerlessTasks>> vmTempTimeMap = new HashMap<ServerlessInvoker,ArrayList<ServerlessTasks>>();
+    protected Map<String, ArrayList<ServerlessInvoker>> functionVmMap = new HashMap<String, ArrayList<ServerlessInvoker>>();
+    protected List<ServerlessTasks> toSubmitOnContainerCreation = new ArrayList<ServerlessTasks>();
+    protected List<Double> averageVmUsageRecords = new ArrayList<Double>();
+    protected List<Double> meanAverageVmUsageRecords = new ArrayList<Double>();
+    protected List<Integer> vmCountList = new ArrayList<Integer>();
+    protected List<Double> meanSumOfVmCount = new ArrayList<Double>();
+    protected double timeInterval = 50.0;
+    protected double cloudletSubmitClock = 0;
+    protected Map<ServerlessInvoker, ArrayList<ServerlessTasks>> vmTempTimeMap = new HashMap<ServerlessInvoker,ArrayList<ServerlessTasks>>();
     ServerlessDatacenter e ;
+
+    RequestLoadBalancer loadBalancer;
     public int controllerId=0;
-    public static int containerId = 1;
+    public int containerId = 1;;
     private boolean reschedule = false;
     int dcount = 1;
     int exsitingContCount = 0;
@@ -93,6 +100,9 @@ public class ServerlessController extends ContainerDatacenterBroker {
             case CloudSimTags.CONTAINER_DESTROY_ACK:
                 processContainerDestroy(ev);
                 break;
+            case CloudSimTags.SCALED_CONTAINER:
+                processScaledContainer(ev);
+                break;
 
             case CloudSimTags.CLOUDLET_MOVE_ACK:
                 processCloudletMoveAck(ev);
@@ -112,9 +122,9 @@ public class ServerlessController extends ContainerDatacenterBroker {
         }
     }
 
-    public ServerlessController(String name, double overBookingfactor) throws Exception {
+    public ServerlessController(String name, int overBookingfactor) throws Exception {
         super(name, overBookingfactor);
-        ServerlessController.overBookingfactor = (int) overBookingfactor;
+        ServerlessController.overBookingfactor = overBookingfactor;
         createCloudlets();
     }
 
@@ -133,8 +143,9 @@ public class ServerlessController extends ContainerDatacenterBroker {
             controllerId= this.getId();
 
             e = createDatacenter("datacenter");
+            loadBalancer = new RequestLoadBalancer(this, e);
 
-            vmList = createVmList(controllerId);
+            List<ServerlessInvoker> vmList = createVmList(controllerId);
             this.submitVmList(vmList);
 
 //          the time at which the simulation has to be terminated.
@@ -149,8 +160,11 @@ public class ServerlessController extends ContainerDatacenterBroker {
 //          Printing the results when the simulation is finished.
             List<ContainerCloudlet> newList = this.getCloudletReceivedList();
             printCloudletList(newList);
-            printVmUpDownTime();
-            printVmUtilization();
+            if (Constants.monitoring){
+                printVmUpDownTime();
+                printVmUtilization();
+            }
+
             writeDataLineByLine(newList);
 
 
@@ -175,13 +189,11 @@ public class ServerlessController extends ContainerDatacenterBroker {
 
         while ((line = br.readLine()) != null) {
             String[] data = line.split(cvsSplitBy);
-            /*System.out.println(">>>> " + data.length);
-            System.out.println(data[0]+" "+data[1]+" "+data[2]+" "+data[3]+" "+data[4]);*/
             ServerlessTasks cloudlet = null;
 
             try {
                 cloudlet = new ServerlessTasks(IDs.pollId(ServerlessTasks.class), Double.parseDouble(data[0]), data[1], data[2], Long.parseLong(data[3]), Integer.parseInt(data[4]), Integer.parseInt(data[5]), Double.parseDouble(data[6]), Integer.parseInt(data[7]),
-                        fileSize, outputSize, utilizationModelPar, utilizationModel, utilizationModel, false, false);
+                        fileSize, outputSize, utilizationModelPar, utilizationModel, utilizationModel, false, 0, true);
                 System.out.println("Cloudlet No " + cloudlet.getCloudletId());
             } catch (Exception e) {
                 e.printStackTrace();
@@ -210,7 +222,7 @@ public class ServerlessController extends ContainerDatacenterBroker {
         double costPerBw = 0.0D;
 
         List<ContainerHost> hostList = createHostList(Constants.NUMBER_HOSTS);
-        //        Host to migrate
+        //        Select hosts to migrate
         HostSelectionPolicy hostSelectionPolicy = new HostSelectionPolicyFirstFit();
         //        Select vms to migrate
         PowerContainerVmSelectionPolicy vmSelectionPolicy = new PowerContainerVmSelectionPolicyMaximumUsage();
@@ -219,7 +231,9 @@ public class ServerlessController extends ContainerDatacenterBroker {
                 PCVmAllocationPolicyMigrationAbstractHostSelection(hostList, vmSelectionPolicy,
                 hostSelectionPolicy, Constants.overUtilizationThreshold, Constants.underUtilizationThreshold);
         //      Allocating vms to container
-        ContainerAllocationPolicy containerAllocationPolicy = new ServerlessContainerAllocationPolicy();
+        FunctionScheduler containerAllocationPolicy = new FunctionScheduler();
+        //  Load Balancer for routing function requests
+
 
         ContainerDatacenterCharacteristics characteristics = new
                 ContainerDatacenterCharacteristics(arch, os, vmm, hostList, time_zone, cost, costPerMem, costPerStorage,
@@ -227,7 +241,7 @@ public class ServerlessController extends ContainerDatacenterBroker {
         /** Set datacenter monitoring to true if metrics monitoring is required **/
         ServerlessDatacenter datacenter = new ServerlessDatacenter(name, characteristics, vmAllocationPolicy,
                 containerAllocationPolicy, new LinkedList<Storage>(), Constants.SCHEDULING_INTERVAL, getExperimentName("SimTest1", String.valueOf(overBookingfactor)), logAddress,
-                Constants.VM_STARTTUP_DELAY, Constants.CONTAINER_STARTTUP_DELAY, true);
+                Constants.VM_STARTTUP_DELAY, Constants.CONTAINER_STARTTUP_DELAY, Constants.monitoring);
 
         return datacenter;
     }
@@ -271,13 +285,10 @@ public class ServerlessController extends ContainerDatacenterBroker {
 
     private static ArrayList<ServerlessInvoker> createVmList(int brokerId) {
         ArrayList<ServerlessInvoker> containerVms = new ArrayList<ServerlessInvoker>();
-
         for (int i = 0; i < Constants.NUMBER_VMS; ++i) {
             ArrayList<ContainerPe> peList = new ArrayList<ContainerPe>();
-//            int vmType = i / (int) Math.ceil((double) containerVmsNumber / 4.0D);
             Random rand = new Random();
             int vmType = rand.nextInt(4);
-            // System.out.println("Vm type is: "+ vmType);
             for (int j = 0; j < Constants.VM_PES[vmType]; ++j) {
                 peList.add(new ContainerPe(j,
                         new CotainerPeProvisionerSimple((double) Constants.VM_MIPS[vmType])));
@@ -313,77 +324,75 @@ public class ServerlessController extends ContainerDatacenterBroker {
             else {
                 submitCloudletoList(cl);
             }
+            loadBalancer.routeRequest(cl);
 /*********************************Serverless Architecture 1********************************/
-            if (!Constants.container_concurrency && (cl.getVmId() == -1 || cl.getReschedule())) {
-                ServerlessInvoker vm = selectVM(cl);
-                if (vm != null) {
-                    cl.setContainerId(containerId);
-                    toSubmitOnContainerCreation.add(cl);
-                    addToVmTaskMap(cl, vm);
-                    createContainer(cl, cl.getUserId(), getDatacenterIdsList().get(0), (vm.getHost()).getId(), vm.getId(), vm, containerId, cl.getcloudletMemory());
-                    containerId++;
-                } else {
-                    System.out.println("Cloudlet #" + cl.getCloudletId() + " has no vm to execute");
-                }
-                cloudletSubmitClock = CloudSim.clock();
-
-            }
-/*********************************Serverless Architecture 2********************************/
-            else if (Constants.container_concurrency && (cl.getContainerId() == -1 || cl.getReschedule())) {
-                ServerlessContainer container = selectContainer(cl);
-                if (vm != null) {
-                    cl.setContainerId(containerId);
-                    toSubmitOnContainerCreation.add(cl);
-                    addToVmTaskMap(cl, vm);
-                    createContainer(cl, cl.getUserId(), getDatacenterIdsList().get(0), (vm.getHost()).getId(), vm.getId(), vm, containerId, cl.getcloudletMemory());
-                    containerId++;
-                } else {
-                    System.out.println("Cloudlet #" + cl.getCloudletId() + " has no vm to execute");
-                }
-                cloudletSubmitClock = CloudSim.clock();
-
-            }
+//            if (!Constants.containerConcurrency && (cl.getVmId() == -1 || cl.getReschedule())) {
+//                loadBalancer.routeRequest(cl);
+////                ServerlessInvoker vm = selectVM(cl);
+////                if (vm != null) {
+//////                    cl.setContainerId(containerId);
+////                    toSubmitOnContainerCreation.add(cl);
+//////                    addToVmTaskMap(cl, vm);
+////                    createContainer(cl, cl.getcloudletFunctionId(), cl.getUserId(), vm);
+////                } else {
+////                    System.out.println("Cloudlet #" + cl.getCloudletId() + " has no vm to execute");
+////                }
+//                cloudletSubmitClock = CloudSim.clock();
+//
+//            }
+///*********************************Serverless Architecture 2********************************/
+//            else if (Constants.containerConcurrency && (cl.getContainerId() == -1 || cl.getReschedule())) {
+//                if (cl.retry > Constants.max_reschedule_tries){
+//                    cl.setSuccess(false);
+//                    getCloudletReceivedList().add(cl);
+//                }
+//                else{
+//                    boolean containerSelected = selectContainer(cl);
+//                    if (!containerSelected) {
+//                        getCloudletList().remove(cl);
+//                    }
+//                }
+//
+//
+//
+//            }
         }
 
     }
 
-    protected ServerlessContainer selectContainer(ServerlessTasks task){
-        for (int x = 0; x <= vmsCreatedList.size(); x++) {
-            ServerlessInvoker vm = (ServerlessInvoker) (ContainerVmList.getById(getVmsCreatedList(), x));
-            assert vm != null;
-            if(vm.getFunctionContainerMap().containsKey(task.getcloudletFunctionId())){
-                List<Container> contList = vm.getFunctionContainerMap().get(task.getcloudletType());
-                for (int y = 0; y < contList.size(); y++){
-                    if (task.getcloudletMemory() <= (contList.get(y).getRam() - contList.get(y).getCurrentAllocatedRam()) && task.getNumberOfPes()*task.getUtilizationModelCpu().getFuncUtilization(task.getcloudletFunctionId()) <= (contList.get(y).getMips() - contList.get(y).getCurrentAllocatedMips())){
-
-                    }
-
-                }
-
-            }
-                if (cloudlet.getcloudletMemory() <= tempSelectedVm.getContainerRamProvisioner().getAvailableVmRam() && Constants.CONTAINER_BW <= tempSelectedVm.getContainerBwProvisioner().getAvailableVmBw() && Constants.CONTAINER_SIZE <= tempSelectedVm.getSize() ) {
-                    selectedVm = tempSelectedVm;
-                    vmSelected = true;
-                    break;
-                }
-            }
-
-            }
-            if (cloudlet.getReschedule()) {
-                if (tempSelectedVm == (ServerlessInvoker) (ContainerVmList.getById(getVmsCreatedList(), cloudlet.getVmId()))) {
-
-
-        }
+    protected void sendFunctionRetryRequest(ServerlessTasks req){
+        send(getId(), Constants.FUNCTION_SCHEDULING_RETRY_DELAY, CloudSimTags.CLOUDLET_SUBMIT, req);
     }
 
-    protected void createContainer(ServerlessTasks cl, int brokerId, int dcId, int hostId, int vmId, ServerlessInvoker vm, int containerId, int memory) {
+
+
+    protected void createContainer(ServerlessTasks cl, String cloudletId, int brokerId) {
         double containerMips = 0;
-/**     container MIPS is set in proportion to the ram allocation  **/
-        containerMips = vm.getTotalMips()*(memory/(vm.getRam()));
-        ServerlessContainer container = new ServerlessContainer(containerId, brokerId, containerMips, Constants.CLOUDLET_PES, memory, Constants.CONTAINER_BW, Constants.CONTAINER_SIZE,"Xen", new ServerlessCloudletScheduler(containerMips, Constants.CLOUDLET_PES), Constants.SCHEDULING_INTERVAL, true, false);
+/**     container MIPS is set as specified for that container type  **/
+        containerMips = Constants.CONTAINER_MIPS[Integer.parseInt(cloudletId)];
+        ServerlessContainer container = new ServerlessContainer(containerId, brokerId, cloudletId, containerMips, Constants.CLOUDLET_PES, Constants.CONTAINER_RAM[Integer.parseInt(cloudletId)], Constants.CONTAINER_BW, Constants.CONTAINER_SIZE,"Xen", new ServerlessCloudletScheduler(containerMips, Constants.CONTAINER_PES[Integer.parseInt(cloudletId)]), Constants.SCHEDULING_INTERVAL, true, false);
         getContainerList().add(container);
-        container.setVm(vm);
+        if (!(cl ==null)){
+            cl.setContainerId(containerId);
+        }
+//        if (!Constants.containerConcurrency){
+//            container.setVm(vm);
+//        }
         submitContainer(cl, container);
+        containerId++;
+
+
+    }
+    protected void processScaledContainer(SimEvent ev){
+        int[] data = (int[]) ev.getData();
+        int brokerId = data[0];
+        String cloudletId = String.valueOf((data[1]));
+        double containerMips = Constants.CONTAINER_MIPS[Integer.parseInt(cloudletId)];
+        ServerlessContainer container = new ServerlessContainer(containerId, brokerId, cloudletId, containerMips, Constants.CLOUDLET_PES, Constants.CONTAINER_RAM[Integer.parseInt(cloudletId)], Constants.CONTAINER_BW, Constants.CONTAINER_SIZE,"Xen", new ServerlessCloudletScheduler(containerMips, Constants.CONTAINER_PES[Integer.parseInt(cloudletId)]), Constants.SCHEDULING_INTERVAL, true, false);
+        getContainerList().add(container);
+        container.setWorkloadMips(container.getMips());
+        sendNow(getDatacenterIdsList().get(0), containerCloudSimTags.CONTAINER_SUBMIT, container);
+        containerId++;
 
     }
 
@@ -424,7 +433,7 @@ public class ServerlessController extends ContainerDatacenterBroker {
     }
 
     /**
-     * Insert the policy for selecting a VM when container concurrency is enableld
+     * Insert the policy for selecting a VM when container concurrency is not enableld
      */
     public ServerlessInvoker selectVM(ServerlessTasks cloudlet) {
         ServerlessInvoker selectedVm = null;
@@ -524,7 +533,7 @@ public class ServerlessController extends ContainerDatacenterBroker {
 
 //        reschedule = data[3] == 1;
 
-        Container cont = ContainerList.getById(getContainerList(), containerId);
+        ServerlessContainer cont = ContainerList.getById(getContainerList(), containerId);
 
         //System.out.println(">>>>>>Container list size: "+getContainerList().size()+" container MIPS "+ ContainerList.getById(getContainerList(), containerId).getCurrentRequestedMips());
         if (result == CloudSimTags.TRUE) {
@@ -533,8 +542,10 @@ public class ServerlessController extends ContainerDatacenterBroker {
             else{
                 getContainersToVmsMap().put(containerId, vmId);
                 getContainersCreatedList().add(cont);
+                ServerlessInvoker vm = (ServerlessInvoker)(ContainerVmList.getById(getVmsCreatedList(),vmId));
+                vm.getFunctionContainerMapPending().get(cont.getType()).remove(cont);
+                vm.setFunctionContainerMap(cont, cont.getType());
 
-//            ContainerVm p= ContainerVmList.getById(getVmsCreatedList(), vmId);
                 int hostId = ContainerVmList.getById(getVmsCreatedList(), vmId).getHost().getId();
                 Log.printConcatLine(CloudSim.clock(), ": ", getName(), ": The Container #", containerId,
                         ", is created on Vm #",vmId
@@ -553,6 +564,7 @@ public class ServerlessController extends ContainerDatacenterBroker {
                 if(cloudlet.getContainerId()==containerId) {
                     ServerlessInvoker vm = (ServerlessInvoker)(ContainerVmList.getById(getVmsCreatedList(),vmId));
                     if(vm!=null) {
+                        addToVmTaskMap(cloudlet, vm);
                         vmTempTimeMap.get(vm).remove(cloudlet);
                         vm.setFunctionContainerMap(cont, cloudlet.getcloudletFunctionId());
                         setFunctionVmMap(((ServerlessInvoker) (ContainerVmList.getById(getVmsCreatedList(), vmId))), cloudlet.getcloudletFunctionId());
@@ -595,6 +607,40 @@ public class ServerlessController extends ContainerDatacenterBroker {
 
     }
 
+    @Override
+    protected void processVmCreate(SimEvent ev) {
+        int[] data = (int[]) ev.getData();
+        int datacenterId = data[0];
+        int vmId = data[1];
+        int result = data[2];
+
+        if (result == CloudSimTags.TRUE) {
+            getVmsToDatacentersMap().put(vmId, datacenterId);
+            getVmsCreatedList().add(ContainerVmList.getById(getVmList(), vmId));
+
+            /** Add Vm to idle list */
+            vmIdleList.add(ContainerVmList.getById(getVmList(), vmId));
+            ArrayList<ServerlessTasks> taskList = new ArrayList<>();
+            vmTempTimeMap.put(ContainerVmList.getById(getVmList(), vmId),taskList);
+
+            Log.printConcatLine(CloudSim.clock(), ": ", getName(), ": VM #", vmId,
+                    " has been created in Datacenter #", datacenterId, ", Host #",
+                    ContainerVmList.getById(getVmsCreatedList(), vmId).getHost().getId());
+            setNumberOfCreatedVMs(getNumberOfCreatedVMs() + 1);
+        } else {
+            Log.printConcatLine(CloudSim.clock(), ": ", getName(), ": Creation of VM #", vmId,
+                    " failed in Datacenter #", datacenterId);
+        }
+
+        incrementVmsAcks();
+//        if (getVmsCreatedList().size() == getVmList().size() - getVmsDestroyed()) {
+//        If we have tried creating all of the vms in the data center, we submit the containers.
+        /*if (getVmList().size() == vmsAcks) {
+
+            submitContainers();
+        }*/
+    }
+
     public void submitCloudletToDC(ServerlessTasks cloudlet, int vmId, double delay, int containerId){
         if(!cloudlet.getReschedule()) {
             cloudlet.setVmId(vmId);
@@ -634,6 +680,15 @@ public class ServerlessController extends ContainerDatacenterBroker {
         Container cont = ContainerList.getById(getContainersCreatedList(), task.getContainerId());
         ServerlessInvoker vm = ContainerVmList.getById(getVmsCreatedList(),task.getVmId());
         ((ServerlessContainer)cont).newContainer =false;
+    }
+
+    public void processCloudletMoveAck(SimEvent ev) {
+        Pair data = (Pair) ev.getData();
+        ServerlessInvoker oldVm = ContainerVmList.getById(getVmsCreatedList(), (Integer) data.getValue());
+        ServerlessInvoker newVm = ContainerVmList.getById(getVmsCreatedList(), ((ServerlessTasks) data.getKey()).getVmId());
+        Container cont = ContainerList.getById(getContainersCreatedList(), ((ServerlessTasks) data.getKey()).getContainerId());
+        ((ServerlessContainer) cont).newContainer = false;
+
     }
 
     public void setFunctionVmMap(ServerlessInvoker vm, String functionId){
@@ -678,6 +733,62 @@ public class ServerlessController extends ContainerDatacenterBroker {
 
     }
 
+    @Override
+
+    protected void processCloudletReturn(SimEvent ev) {
+        Pair data = (Pair) ev.getData();
+        ContainerCloudlet cloudlet = (ContainerCloudlet) data.getKey();
+        ContainerVm vm = (ContainerVm) data.getValue();
+
+
+        removeFromVmTaskMap((ServerlessTasks)cloudlet,(ServerlessInvoker)vm);
+        removeFromVmTaskExecutionMap((ServerlessTasks)cloudlet,(ServerlessInvoker)vm);
+
+        getCloudletReceivedList().add(cloudlet);
+        Log.printConcatLine(CloudSim.clock(), ": ", getName(), ": Cloudlet ", cloudlet.getCloudletId(),
+                " returned");
+        //Log.printConcatLine(CloudSim.clock(), ": ", getName(), "The number of finished Cloudlets is:", getCloudletReceivedList().size());
+        /**Debugger */
+        //System.out.println(CloudSim.clock()+" Debugger: CLoudletlist size: "+getCloudletList().size()+" Cloudletssubmitted: "+cloudletsSubmitted );
+        cloudletsSubmitted--;
+
+
+        noOfTasksReturned++;
+        /*if(noOfTasksReturned==Constants.NUM_TASKS){
+            for(int x=0; x<getVmsCreatedList().size(); x++){
+                ServerlessInvoker invoker = ((ServerlessInvoker)getVmsCreatedList().get(x));
+                if(invoker.inTime< invoker.outTime){
+                    double outTimeRecorded = (invoker.getVmUpTime()).get("Out");
+                    (invoker.getVmUpTime()).put("Out",outTimeRecorded+CloudSim.clock()-invoker.outTime);
+
+                }
+                else{
+                    double inTimeRecorded = (invoker.getVmUpTime()).get("In");
+                    (invoker.getVmUpTime()).put("In",inTimeRecorded+CloudSim.clock()-invoker.inTime);
+                }
+
+            }
+        }*/
+
+
+
+//        if (getCloudletList().size() == 0 && cloudletsSubmitted == 0) { // all cloudlets executed
+//            Log.printConcatLine(CloudSim.clock(), ": ", getName(), ": All Cloudlets executed. Finishing...");
+//            clearDatacenters();
+//            finishExecution();
+//        }
+/*        else { // some cloudlets haven't finished yet
+            if (getCloudletList().size() > 0 && cloudletsSubmitted == 0) {
+                // all the cloudlets sent finished. It means that some bount
+                // cloudlet is waiting its VM be created
+                clearDatacenters();
+                createVmsInDatacenter(0);
+            }
+
+        }*/
+    }
+
+
 
 
     private static void printCloudletList(List<ContainerCloudlet> list) {
@@ -699,20 +810,25 @@ public class ServerlessController extends ContainerDatacenterBroker {
 
             if (cloudlet.getCloudletStatusString() == "Success") {
                 Log.print("SUCCESS");
-                if(Math.ceil((cloudlet.getFinishTime()-((ServerlessTasks)cloudlet).getArrivalTime())) <=(Math.ceil(((ServerlessTasks) cloudlet).getMaxExecTime())) || Math.floor((cloudlet.getFinishTime()-((ServerlessTasks)cloudlet).getArrivalTime())) <=(Math.ceil(((ServerlessTasks) cloudlet).getMaxExecTime()))){
+                if (Math.ceil((cloudlet.getFinishTime() - ((ServerlessTasks) cloudlet).getArrivalTime())) <= (Math.ceil(((ServerlessTasks) cloudlet).getMaxExecTime())) || Math.floor((cloudlet.getFinishTime() - ((ServerlessTasks) cloudlet).getArrivalTime())) <= (Math.ceil(((ServerlessTasks) cloudlet).getMaxExecTime()))) {
                     deadlineMetStat++;
                 }
-
-                Log.printLine(indent + indent + cloudlet.getResourceId()
-                        + indent + indent + indent +indent + cloudlet.getVmId()
-                        + indent + indent+ indent+ indent
-                        + dft.format(cloudlet.getActualCPUTime()) + indent+ indent
-                        + indent + dft.format(cloudlet.getExecStartTime())
-                        + indent + indent+ indent
-                        + dft.format(cloudlet.getFinishTime())+ indent + indent + indent
-                        + dft.format(cloudlet.getFinishTime()-((ServerlessTasks)cloudlet).getArrivalTime())+ indent + indent + indent
-                        + ((ServerlessTasks)cloudlet).getResList());
             }
+            else{
+                Log.print("DROPPED");
+            }
+
+            Log.printLine(indent + indent + cloudlet.getResourceId()
+                    + indent + indent + indent +indent + cloudlet.getVmId()
+                    + indent + indent+ indent+ indent
+                    + dft.format(cloudlet.getActualCPUTime()) + indent+ indent
+                    + indent + dft.format(cloudlet.getExecStartTime())
+                    + indent + indent+ indent
+                    + dft.format(cloudlet.getFinishTime())+ indent + indent + indent
+                    + dft.format(cloudlet.getFinishTime()-((ServerlessTasks)cloudlet).getArrivalTime())+ indent + indent + indent
+                    + ((ServerlessTasks)cloudlet).getResList());
+
+
         }
 
         Log.printLine("Deadline met no: "+deadlineMetStat);
@@ -730,6 +846,62 @@ public class ServerlessController extends ContainerDatacenterBroker {
             System.out.println("Average CPU records "+ ((ServerlessInvoker)getVmsCreatedList().get(x)).getAverageCPUUsageRecords());*/
 
 //        }
+    }
+
+    public void processRecordCPUUsage(SimEvent ev){
+        /*ServerlessInvoker vm = (ServerlessInvoker)ev.getData();
+        double sum = 0;
+        double utilization   = 1 - vm.getAvailableMips() / vm.getTotalMips();
+        if(utilization>0) {
+            vm.getCPUUsageRecords().add(utilization);
+            if(vm.getId()==2){
+                System.out.println(" CPU record fo vm 2 "+utilization);
+            }
+            if (vm.getCPUUsageRecords().size() == Constants.CPU_HISTORY_LENGTH) {
+                for (int x = 0; x < vm.getCPUUsageRecords().size(); x++) {
+                    sum += vm.getCPUUsageRecords().get(x);
+                }
+                vm.getAverageCPUUsageRecords().add(sum / Constants.CPU_HISTORY_LENGTH);
+
+                vm.getCPUUsageRecords().clear();
+            }
+
+        }*/
+
+        double utilization   = 0;
+        int vmCount = 0;
+        double sum=0;
+
+        for(int x=0; x< getVmsCreatedList().size(); x++){
+            utilization   = 1 - getVmsCreatedList().get(x).getAvailableMips() / getVmsCreatedList().get(x).getTotalMips();
+            if(utilization>0){
+                ((ServerlessInvoker)getVmsCreatedList().get(x)).used = true;
+                vmCount++;
+                sum += utilization;
+            }
+        }
+        if(sum>0){
+            averageVmUsageRecords.add(sum/vmCount);
+            vmCountList.add(vmCount);
+        }
+
+        double sumOfAverage = 0;
+        double sumOfVmCount = 0;
+        if(averageVmUsageRecords.size()==Constants.CPU_HISTORY_LENGTH){
+            for(int x=0; x<Constants.CPU_HISTORY_LENGTH; x++){
+                sumOfAverage += averageVmUsageRecords.get(x);
+                sumOfVmCount += vmCountList.get(x);
+            }
+            meanAverageVmUsageRecords.add(sumOfAverage/Constants.CPU_HISTORY_LENGTH);
+            meanSumOfVmCount.add(sumOfVmCount/Constants.CPU_HISTORY_LENGTH);
+            averageVmUsageRecords.clear();
+            vmCountList.clear();
+        }
+
+
+        send(this.getId(), Constants.CPU_USAGE_MONITORING_INTERVAL, CloudSimTags.RECORD_CPU_USAGE);
+
+
     }
 
     public double getAverageResourceUtilization(){
@@ -751,6 +923,10 @@ public class ServerlessController extends ContainerDatacenterBroker {
         }
         return sumCount/meanSumOfVmCount.size();
     }
+
+
+
+
 
     private  void printVmUpDownTime(){
         double totalVmUpTime = 0;
@@ -782,6 +958,8 @@ public class ServerlessController extends ContainerDatacenterBroker {
         // first create file object for file placed at location
         // specified by filepath
         int size = list.size();
+        int successfulRequestCount = 0;
+        int droppedRequestCount = 0;
         Cloudlet cloudlet;
         String indent = "    ";
         java.io.File file = new java.io.File("D:\\UniMelb\\Studying\\CloudSim\\data\\OW_Output.csv");
@@ -797,20 +975,33 @@ public class ServerlessController extends ContainerDatacenterBroker {
             String[] header = { "Cloudlet ID", "STATUS", "Data center ID","Final VM ID" ,"Execution Time" ,"Start Time" ,"Finish Time","Response Time","Vm List", "Max execution time" , "Priority"};
             writer.writeNext(header);
 
-            for (int i = 0; i < size; i++) {
-                cloudlet = list.get(i);
+            for (ContainerCloudlet containerCloudlet : list) {
+                cloudlet = containerCloudlet;
 
-                if (cloudlet.getCloudletStatusString() == "Success") {
-                    String[] data = {String.valueOf(cloudlet.getCloudletId()),"SUCCESS",String.valueOf(cloudlet.getResourceId()), String.valueOf(cloudlet.getVmId()), String.valueOf(cloudlet.getActualCPUTime()), String.valueOf(cloudlet.getExecStartTime()), String.valueOf(cloudlet.getFinishTime()), String.valueOf((cloudlet.getFinishTime()-((ServerlessTasks)cloudlet).getArrivalTime())), ((ServerlessTasks)cloudlet).getResList(), String.valueOf(((ServerlessTasks) cloudlet).getMaxExecTime()), String.valueOf(((ServerlessTasks) cloudlet).getPriority())};
+                if (cloudlet.getCloudletStatusString().equals("Success")) {
+                    successfulRequestCount++;
+                    String[] data = {String.valueOf(cloudlet.getCloudletId()), "SUCCESS", String.valueOf(cloudlet.getResourceId()), String.valueOf(cloudlet.getVmId()), String.valueOf(cloudlet.getActualCPUTime()), String.valueOf(cloudlet.getExecStartTime()), String.valueOf(cloudlet.getFinishTime()), String.valueOf((cloudlet.getFinishTime() - ((ServerlessTasks) cloudlet).getArrivalTime())), ((ServerlessTasks) cloudlet).getResList(), String.valueOf(((ServerlessTasks) cloudlet).getMaxExecTime()), String.valueOf(((ServerlessTasks) cloudlet).getPriority())};
                     writer.writeNext(data);
 
+                } else {
+                    droppedRequestCount++;
+                    String[] data = {String.valueOf(cloudlet.getCloudletId()), "DROPPED", String.valueOf(cloudlet.getResourceId()), String.valueOf(cloudlet.getVmId()), String.valueOf(cloudlet.getActualCPUTime()), String.valueOf(cloudlet.getExecStartTime()), String.valueOf(cloudlet.getFinishTime()), String.valueOf((cloudlet.getFinishTime() - ((ServerlessTasks) cloudlet).getArrivalTime())), ((ServerlessTasks) cloudlet).getResList(), String.valueOf(((ServerlessTasks) cloudlet).getMaxExecTime()), String.valueOf(((ServerlessTasks) cloudlet).getPriority())};
+                    writer.writeNext(data);
                 }
             }
 
-            for(int x=0; x<getVmsCreatedList().size(); x++){
-                String[] data = {"Vm # ", String.valueOf(getVmsCreatedList().get(x).getId()),String.valueOf(((ServerlessInvoker)getVmsCreatedList().get(x)).onTime),String.valueOf(((ServerlessInvoker)getVmsCreatedList().get(x)).offTime)};
-                writer.writeNext(data);
+            if (Constants.monitoring){
+                for(int x=0; x<getVmsCreatedList().size(); x++){
+                    String[] data = {"Vm # ", String.valueOf(getVmsCreatedList().get(x).getId()),String.valueOf(((ServerlessInvoker)getVmsCreatedList().get(x)).onTime),String.valueOf(((ServerlessInvoker)getVmsCreatedList().get(x)).offTime)};
+                    writer.writeNext(data);
+                }
             }
+
+            String[] data1 = {"Successful Request Count # ", String.valueOf(successfulRequestCount)};
+            writer.writeNext(data1);
+            String[] data2 = {"Dropped Request Count # ", String.valueOf(droppedRequestCount)};
+            writer.writeNext(data2);
+
 
 
             // closing writer connection

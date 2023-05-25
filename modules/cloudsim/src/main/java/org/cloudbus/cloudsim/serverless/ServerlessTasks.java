@@ -4,6 +4,8 @@ import org.cloudbus.cloudsim.UtilizationModel;
 import org.cloudbus.cloudsim.container.core.ContainerCloudlet;
 import org.cloudbus.cloudsim.core.CloudSim;
 
+import java.util.List;
+
 public class ServerlessTasks extends ContainerCloudlet {
 
     private String cloudletType = null;
@@ -13,11 +15,12 @@ public class ServerlessTasks extends ContainerCloudlet {
     private double maxExecTime = 0;
     private double arrivalTime = 0;
     public boolean reschedule = false;
-    public boolean retry = false;
+    public boolean success = false;
+    public int retry = 0;
     private int priority = 0;
     private UtilizationModelPartial utilizationModelCpu;
 
-    public ServerlessTasks(int cloudletId, double arrivalTime, String cloudletType, String cloudletFunctionId, long cloudletLength, int pesNumber, int memory, double maxExecTime, int priority, long cloudletFileSize, long cloudletOutputSize, UtilizationModelPartial utilizationModelCpu, UtilizationModel utilizationModelRam, UtilizationModel utilizationModelBw, boolean reschedule, boolean retry) {
+    public ServerlessTasks(int cloudletId, double arrivalTime, String cloudletType, String cloudletFunctionId, long cloudletLength, int pesNumber, int memory, double maxExecTime, int priority, long cloudletFileSize, long cloudletOutputSize, UtilizationModelPartial utilizationModelCpu, UtilizationModel utilizationModelRam, UtilizationModel utilizationModelBw, boolean reschedule, int retry, boolean success) {
         super(cloudletId, cloudletLength, pesNumber, cloudletFileSize, cloudletOutputSize, utilizationModelCpu, utilizationModelRam, utilizationModelBw);
 
         setCloudletType(cloudletType);
@@ -27,6 +30,7 @@ public class ServerlessTasks extends ContainerCloudlet {
         setArrivalTime(arrivalTime);
         setPriority(priority);
         setReschedule(reschedule);
+        setSuccess(success);
         setRetry(retry);
         setUtilizationModelCpu(utilizationModelCpu);
     }
@@ -39,7 +43,8 @@ public class ServerlessTasks extends ContainerCloudlet {
     public void setMaxExecTime(double maxExecTime){this.maxExecTime = maxExecTime;}
     public void setArrivalTime(double arrivalTime){this.arrivalTime = arrivalTime;}
     public void setReschedule(boolean reschedule){this.reschedule = reschedule;}
-    public void setRetry(boolean retry){this.retry = retry;}
+    public void setSuccess(boolean success){this.success = success;}
+    public void setRetry(int retry){this.retry = retry;}
 
     public String getcloudletType() {return cloudletType;}
     public String getcloudletFunctionId() {return cloudletFunctionId;}
@@ -49,7 +54,8 @@ public class ServerlessTasks extends ContainerCloudlet {
     public int getPriority() {return priority;}
     public double getArrivalTime() {return arrivalTime;}
     public boolean getReschedule() {return reschedule;}
-    public boolean getRetry() {return retry;}
+    public boolean getSuccess() {return success;}
+    public int getRetry() {return retry;}
 
 
     public void setResourceParameter(final int resourceID, final double cost, int vmId) {
@@ -95,8 +101,7 @@ public class ServerlessTasks extends ContainerCloudlet {
         return resString;
     }
 
-    @Override
-    public double getUtilizationOfCpu(final double time) {
+    public double getUtilizationOfCpu() {
         return getUtilizationModelCpu().getFuncUtilization(this.cloudletFunctionId);
     }
 

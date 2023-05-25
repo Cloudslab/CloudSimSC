@@ -34,8 +34,16 @@ public class Constants {
      * Startup delay for VMs and the containers are mentioned here.
      */
     public static final double CONTAINER_STARTTUP_DELAY = 0.5;//the amount is in seconds
-    public static final double FUNCTION_SCHEDULING_DELAY = 0.020;
     public static final double VM_STARTTUP_DELAY = 100;//the amoun is in seconds
+    /**
+     * Initial scheduling delay for a function request.
+     */
+    public static final double FUNCTION_SCHEDULING_DELAY = 0.020;
+    /**
+     * Scheduling retry  gap for a function request.
+     */
+    public static final double FUNCTION_SCHEDULING_RETRY_DELAY = 0.2;
+
     public static final double VM_CPU_USAGE_THRESHOLD = 0.9;
     public static final int WINDOW_SIZE = 10;
     public static final double LATENCY_THRESHOLD = 0.10;
@@ -68,9 +76,17 @@ public class Constants {
     public static final int CONTAINER_TYPES = 3;
 //    public static final int[] CONTAINER_MIPS = new int[]{4658, 9320, 18636};
     public static final double[] CONTAINER_MIPS = new double[]{4658, 9320, 18636};
+    public static final double[] CONTAINER_MIPS_INCREMENT = new double[]{-932, -466, -233, 0, 233, 466, 932};
+    public static final int[] CONTAINER_RAM = new int[]{512, 512, 512};
+    public static final double[] CONTAINER_RAM_INCREMENT = new double[]{-1024, -512, -128, 0, 128, 512, 1024};
+    public static final int MIN_CONTAINER_MIPS = 466;
+    public static final int MIN_CONTAINER_RAM = 128;
+    public static final int MAX_CONTAINER_MIPS = 11600;
+    public static final int MAX_CONTAINER_RAM = 3072;
+
     public static final int[] CONTAINER_PES = new int[]{1, 1, 1};
     public static final int[] CONTAINER_CPU_SHARE = new int[]{128, 128, 128};
-    public static final int[] CONTAINER_RAM = new int[]{128, 128, 128};
+
     public static final int CONTAINER_BW = 2500;
     public static final int CONTAINER_SIZE = 512;
     public static final int RAM_INCREMENT = 256;
@@ -116,8 +132,13 @@ public class Constants {
      */
     public static final double overUtilizationThreshold = 0.80;
     public static final double underUtilizationThreshold = 0.70;
-    public static final boolean container_concurrency = false;
+    public static final double containerScaleCPUThreshold = 0.50;
+    public static final boolean containerConcurrency = false;
+    public static final boolean scalePerRequest = false;
     public static final String vmSelectionAlgo = "RM";
+    public static final int max_reschedule_tries = 6;
+    public static final boolean monitoring = true;
+    public static final int maxReplicas = 50;
 
 
 }

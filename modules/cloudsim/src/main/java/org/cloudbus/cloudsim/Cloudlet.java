@@ -105,7 +105,7 @@ public class Cloudlet {
      * Indicates if transaction history records for this Cloudlet is to be
      * outputted.
      */
-    private final boolean record;
+    protected final boolean record;
 
     /**
      * Stores the operating system line separator.
@@ -122,7 +122,7 @@ public class Cloudlet {
      * it starts and finishes executing in a single cloud resource, without
      * being migrated, this list will have only one item.
      */
-    private final List<Resource> resList;
+    protected final List<Resource> resList;
 
     /**
      * The index of the last resource where the cloudlet was executed. If the
@@ -130,7 +130,7 @@ public class Cloudlet {
      * value -1 indicates the cloudlet has not been executed
          yet.
      */
-    private int index;
+    protected int index;
 
     /**
      * The classType or priority of this Cloudlet for scheduling on a resource.
@@ -466,7 +466,7 @@ public class Cloudlet {
      * CloudResources. Each time a cloudlet is run on a given VM, the cloudlet's
      * execution history on each VM is registered at {@link Cloudlet#resList}
      */
-    private static class Resource {
+    public static class Resource {
 
         /**
          * Cloudlet's submission (arrival) time to a CloudResource.
@@ -503,6 +503,10 @@ public class Cloudlet {
          * a CloudResource name.
          */
         public String resourceName = null;
+        /**
+         * cloudlet's vm resource
+         */
+        public int vmId =0;
 
     }
 

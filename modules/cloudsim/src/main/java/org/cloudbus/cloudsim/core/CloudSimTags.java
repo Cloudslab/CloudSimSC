@@ -301,6 +301,7 @@ public class CloudSimTags {
 	public static final int CREATE_CLOUDLETS = 54;
 
 	public static final int PREEMPT_CLOUDLET = 55 ;
+	public static final int SCALED_CONTAINER = 56 ;
 
 	/** Private Constructor. */
 	private CloudSimTags() {

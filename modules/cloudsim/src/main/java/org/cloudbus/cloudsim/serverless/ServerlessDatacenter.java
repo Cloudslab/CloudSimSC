@@ -61,6 +61,8 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
      * The load balancerfor DC.
      */
     private RequestLoadBalancer requestLoadBalancer;
+    private FunctionAutoScaler autoScaler;
+
 
     /**
      * Allocates a new PowerDatacenter object.
@@ -81,6 +83,9 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
         super(name, characteristics, vmAllocationPolicy, containerAllocationPolicy, storageList, schedulingInterval, experimentName, logAddress, vmStartupDelay, containerStartupDelay);
         tasksWaitingToReschedule = new HashMap<Integer, ServerlessTasks>();
         setMonitoring(monitor);
+        autoScaler = new FunctionAutoScaler(this);
+
+
 //        setRequestLoadBalancerR(loadBalancer);
 
     }
@@ -845,9 +850,9 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
         }
 
         checkCloudletCompletion();
-        if (Constants.containerConcurrency){
-            containerHorizontalAutoScaling();
-        }
+        autoScaler.scaleFunctions();
+
+
         destroyIdleContainers();
 
         /**Update CPU Utilization of Vm */
@@ -859,135 +864,10 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
 
     }
 
-    protected void containerHorizontalAutoScaling(){
-        int userId = 0;
-        Map<String, Map<String, Double>> fnNestedMap = new HashMap<>();
-        Map<String, ArrayList<ServerlessContainer>> emptyContainers = new HashMap<>();
-        List<? extends ContainerHost> list = getVmAllocationPolicy().getContainerHostList();
-        for (ContainerHost host : list) {
-            for (ContainerVm machine : host.getVmList()) {
-                userId = machine.getUserId();
-                ServerlessInvoker vm = (ServerlessInvoker)machine;
-                for (Map.Entry<String, ArrayList<Container>> contMap : vm.getFunctionContainerMap().entrySet()) {
-                    if(fnNestedMap.containsKey(contMap.getKey())){
-                        fnNestedMap.get(contMap.getKey()).put("container_count", fnNestedMap.get(contMap.getKey()).get("container_count") + contMap.getValue().size());
-                    }
-                    else{
-                        Map<String, Double> fnMap = new HashMap<>();
-                        fnMap.put("container_count", (double) contMap.getValue().size());
-                        fnMap.put("container_cpu_util", 0.0);
-                        fnNestedMap.put(contMap.getKey(), fnMap);
-                    }
-                    for (Container cont : contMap.getValue()) {
-                        ServerlessContainer container = (ServerlessContainer) cont;
-                        if (container.getRunningTasks().size() == 0){
-                            if (!emptyContainers.containsKey(contMap.getKey())) {
-                                emptyContainers.put(contMap.getKey(), new ArrayList<>());
-                            }
-                            emptyContainers.get(contMap.getKey()).add(container);
-                        }
-                        fnNestedMap.get(contMap.getKey()).put("container_cpu_util", Double.sum(fnNestedMap.get(contMap.getKey()).get("container_cpu_util"), (((ServerlessCloudletScheduler)(container.getContainerCloudletScheduler())).getTotalCurrentAllocatedMipsShareForCloudlets()).get(0)));
-                    }
-                }
-                for (Map.Entry<String, ArrayList<Container>> contMap : vm.getFunctionContainerMapPending().entrySet()) {
-                    if(fnNestedMap.containsKey(contMap.getKey())){
-                        fnNestedMap.get(contMap.getKey()).put("pending_container_count", fnNestedMap.get(contMap.getKey()).get("pending_container_count") + contMap.getValue().size());
-                    }
-                    else{
-                        Map<String, Double> fnMap = new HashMap<>();
-                        fnMap.put("pending_container_count", (double) contMap.getValue().size());
-                        fnNestedMap.put(contMap.getKey(), fnMap);
-                    }
-                }
-
-            }
-        }
-        for (Map.Entry<String, Map<String, Double>> data : fnNestedMap.entrySet()) {
-            int desiredReplicas = (int) Math.ceil(data.getValue().get("container_cpu_util")/data.getValue().get("container_count")/Constants.containerScaleCPUThreshold);
-            int newReplicaCount;
-            int newReplicasToCreate;
-            int replicasToRemove;
-            if (desiredReplicas > 0){
-                newReplicaCount = Math.min(desiredReplicas, Constants.maxReplicas);
-            }
-            else{
-                newReplicaCount = 1;
-            }
-            if (newReplicaCount > data.getValue().get("container_count") + data.getValue().get("pending_container_count")){
-                newReplicasToCreate = (int) Math.ceil(newReplicaCount - data.getValue().get("container_count") - data.getValue().get("pending_container_count"));
-                for (int x = 0; x < newReplicasToCreate; x++){
-                    int[] dt = new int[2];
-                    dt[0] = userId;
-                    dt[1] = Integer.parseInt(data.getKey());
-
-                    sendNow(userId, CloudSimTags.SCALED_CONTAINER, dt);
-                }
-            }
-            if (newReplicaCount < data.getValue().get("container_count") + data.getValue().get("pending_container_count")){
-                replicasToRemove = (int) Math.ceil(data.getValue().get("container_count") + data.getValue().get("pending_container_count") - newReplicaCount);
-                int removedContainers = 0;
-                for (ServerlessContainer cont : emptyContainers.get(data.getKey())) {
-                    getContainersToDestroy().add(cont);
-                    removedContainers ++;
-                    if (removedContainers == replicasToRemove){
-                        break;
-                    }
-                }
-            }
-
-        }
+    protected void sendScaledContainerCreationRequest(int[] data){
+        sendNow(data[0], CloudSimTags.SCALED_CONTAINER, data);
     }
 
-    protected Map<String,List<Integer>> containerVerticalAutoScaling(String functionId){
-        Map<String,List<Integer>> unAvailableActionMap =new HashMap<>();
-        double peMIPSForContainerType = 0;
-        double ramForContainerType = 0;
-        ArrayList<Integer> unAVailableActionlistCPU = new ArrayList<Integer>();
-        ArrayList<Integer> unAVailableActionlistRam = new ArrayList<Integer>();
-        List<? extends ContainerHost> list = getVmAllocationPolicy().getContainerHostList();
-        for (ContainerHost host : list) {
-            for (ContainerVm machine : host.getVmList()) {
-                double containerCPUUtilMin = 0;
-                double containerRAMUtilMin = 0;
-                ServerlessInvoker vm = (ServerlessInvoker) machine;
-                double vmUsedupRam = vm.getContainerRamProvisioner().getRam() - vm.getContainerRamProvisioner().getAvailableVmRam();
-                double vmUsedupMIPS = vm.getContainerScheduler().getPeCapacity()*vm.getContainerScheduler().getPeList().size() - vm.getContainerScheduler().getAvailableMips();
-                int numContainers = vm.getFunctionContainerMap().get(functionId).size();
-                for (Container cont : vm.getFunctionContainerMap().get(functionId)) {
-                    peMIPSForContainerType = cont.getMips();
-                    ramForContainerType = cont.getRam();
-                    ServerlessContainer container = (ServerlessContainer)cont;
-                    ServerlessCloudletScheduler clScheduler = (ServerlessCloudletScheduler) (container.getContainerCloudletScheduler());
-                    if (clScheduler.getTotalCurrentAllocatedMipsShareForCloudlets().get(0) > containerCPUUtilMin){
-                        containerCPUUtilMin = clScheduler.getTotalCurrentAllocatedMipsShareForCloudlets().get(0);
-                    }
-                    if (clScheduler.getTotalCurrentAllocatedRamForCloudlets() > containerRAMUtilMin){
-                        containerRAMUtilMin = clScheduler.getTotalCurrentAllocatedRamForCloudlets();
-                    }
-
-                }
-                for (int x = 0; x< (Constants.CONTAINER_RAM_INCREMENT).length; x++){
-                    if (!unAVailableActionlistRam.contains(x)){
-                        if (Constants.CONTAINER_RAM_INCREMENT[x]*numContainers > vm.getContainerRamProvisioner().getAvailableVmRam() || Constants.CONTAINER_RAM_INCREMENT[x]*numContainers + vmUsedupRam < 0 || (ramForContainerType + Constants.CONTAINER_RAM_INCREMENT[x]) > Constants.MAX_CONTAINER_RAM || (ramForContainerType + Constants.CONTAINER_RAM_INCREMENT[x]) < Constants.MIN_CONTAINER_RAM || (ramForContainerType + Constants.CONTAINER_RAM_INCREMENT[x]) < containerRAMUtilMin){
-                            unAVailableActionlistRam.add(x);
-                        }
-                    }
-                }
-                for (int x = 0; x< (Constants.CONTAINER_MIPS_INCREMENT).length; x++){
-                    if (!unAVailableActionlistCPU.contains(x)){
-                        if (Constants.CONTAINER_MIPS_INCREMENT[x]*numContainers*Constants.CONTAINER_PES[Integer.parseInt(functionId)] > vm.getContainerScheduler().getAvailableMips() || Constants.CONTAINER_MIPS_INCREMENT[x]*numContainers*Constants.CONTAINER_PES[Integer.parseInt(functionId)] + vmUsedupMIPS < 0 || (peMIPSForContainerType + Constants.CONTAINER_MIPS_INCREMENT[x]) > Constants.MAX_CONTAINER_MIPS || (peMIPSForContainerType + Constants.CONTAINER_MIPS_INCREMENT[x]) < Constants.MIN_CONTAINER_MIPS || (peMIPSForContainerType + Constants.CONTAINER_MIPS_INCREMENT[x]) < containerCPUUtilMin){
-                            unAVailableActionlistCPU.add(x);
-                        }
-                    }
-                }
-
-            }
-        }
-        unAvailableActionMap.put("cpuActions", unAVailableActionlistCPU);
-        unAvailableActionMap.put("memActions", unAVailableActionlistRam);
-        return unAvailableActionMap;
-
-    }
 
     @Override
 

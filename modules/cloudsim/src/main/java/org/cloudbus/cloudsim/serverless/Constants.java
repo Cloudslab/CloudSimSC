@@ -134,8 +134,12 @@ public class Constants {
     public static final double underUtilizationThreshold = 0.70;
     public static final double containerScaleCPUThreshold = 0.50;
     public static final boolean containerConcurrency = false;
+    public static final boolean functionHorizontalAutoscaling = false;
+    public static final boolean functionVerticalAutoscaling = false;
     public static final boolean scalePerRequest = false;
     public static final String vmSelectionAlgo = "RM";
+    public static final String horScalingLogic = "cpuThreshold";
+    public static final String containerSelectionAlgo = "FF";
     public static final int max_reschedule_tries = 6;
     public static final boolean monitoring = true;
     public static final int maxReplicas = 50;

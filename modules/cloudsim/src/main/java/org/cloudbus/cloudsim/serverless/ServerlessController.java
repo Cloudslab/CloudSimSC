@@ -68,6 +68,7 @@ public class ServerlessController extends ContainerDatacenterBroker {
     ServerlessDatacenter e ;
 
     RequestLoadBalancer loadBalancer;
+
     public int controllerId=0;
     public int containerId = 1;;
     private boolean reschedule = false;
@@ -144,6 +145,7 @@ public class ServerlessController extends ContainerDatacenterBroker {
 
             e = createDatacenter("datacenter");
             loadBalancer = new RequestLoadBalancer(this, e);
+
 
             List<ServerlessInvoker> vmList = createVmList(controllerId);
             this.submitVmList(vmList);

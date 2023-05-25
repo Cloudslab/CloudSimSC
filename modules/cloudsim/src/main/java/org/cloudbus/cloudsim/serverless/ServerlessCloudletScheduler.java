@@ -95,7 +95,7 @@ public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynam
     public double getEstimatedFinishTime(ResCloudlet rcl, double time) {
         ServerlessTasks cl =(ServerlessTasks)(rcl.getCloudlet());
         return time
-                + ((rcl.getRemainingCloudletLength()) / (cl.getNumberOfPes()*cl.getUtilizationOfCpu()));
+                + ((rcl.getRemainingCloudletLength()) / (cl.getNumberOfPes()*this.getMips()*cl.getUtilizationOfCpu()));
     }
 
     public double getLongestRunTime() {

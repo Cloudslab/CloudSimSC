@@ -108,7 +108,7 @@ public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynam
 
 //    Is called each time a cloudlet is finally submitted to DC
     public double cloudletSubmit(ServerlessTasks cl, ServerlessInvoker vm, ServerlessContainer cont) {
-        if (!Constants.container_concurrency){
+        if (!Constants.containerConcurrency){
             setTotalCurrentAllocatedMipsShareForCloudlets(cl);
             setTotalCurrentAllocatedRamForCloudlets(cl, cont);
         }

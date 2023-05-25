@@ -845,7 +845,7 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
         }
 
         checkCloudletCompletion();
-        if (Constants.container_concurrency){
+        if (Constants.containerConcurrency){
             containerHorizontalAutoScaling();
         }
         destroyIdleContainers();

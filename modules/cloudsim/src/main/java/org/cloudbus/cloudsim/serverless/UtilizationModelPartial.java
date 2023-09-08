@@ -15,8 +15,11 @@ public class UtilizationModelPartial implements UtilizationModel {
         return 0;
     }
 
-    public double getFuncUtilization(String functionId) {
-        return Constants.FUNCTION_PE_SHARE[Integer.parseInt(functionId)];
+    public double getCpuUtilization(ServerlessRequest request) {
+        return request.getCpuShareRequest();
+    }
+    public double getMemUtilization(ServerlessRequest request) {
+        return request.getMemShareRequest();
     }
 
 

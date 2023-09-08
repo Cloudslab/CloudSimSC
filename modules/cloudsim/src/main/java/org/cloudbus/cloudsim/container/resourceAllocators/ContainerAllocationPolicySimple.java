@@ -140,6 +140,11 @@ public class ContainerAllocationPolicySimple extends ContainerAllocationPolicy {
 		return getContainerVmTable().get(Container.getUid(userId, containerId));
 	}
 
+	@Override
+	public boolean allocateVmForContainer(Container container, ContainerVm vm, List<ContainerVm> containerVmList) {
+		return false;
+	}
+
 	protected Map<String, ContainerVm> getContainerVmTable() {
 		return containerVmTable;
 	}

@@ -21,7 +21,7 @@ public class Constants {
     public static final double SCHEDULING_INTERVAL = 300.0D;
     public static final double SIMULATION_LIMIT = 87400.0D;
     /**
-     * Cloudlet specs
+     * request specs
      */
     public static final int CLOUDLET_LENGTH = 30;
     public static final int CLOUDLET_PES = 1;
@@ -52,6 +52,8 @@ public class Constants {
 
     public static final int NUM_TASKS = 50;
     public static final double CPU_USAGE_MONITORING_INTERVAL = 0.01;
+
+    public static final double AUTO_SCALING_INTERVAL = 2;
     public static final double FUNCTION_PLACEMENT_TIME = 0.002;
     public static final double MINIMUM_INTERVAL_BETWEEN_TWO_CLOUDLET_SUBMISSIONS = 0.001;
     public static final double CLOUDLET_CREATING_INTERVAL = 50.0;
@@ -76,9 +78,9 @@ public class Constants {
     public static final int CONTAINER_TYPES = 3;
 //    public static final int[] CONTAINER_MIPS = new int[]{4658, 9320, 18636};
     public static final double[] CONTAINER_MIPS = new double[]{4658, 9320, 18636};
-    public static final double[] CONTAINER_MIPS_INCREMENT = new double[]{-932, -466, -233, 0, 233, 466, 932};
+    public static final int[] CONTAINER_MIPS_INCREMENT = new int[]{-932, -466, -233, 0, 233, 466, 932};
     public static final int[] CONTAINER_RAM = new int[]{512, 512, 512};
-    public static final double[] CONTAINER_RAM_INCREMENT = new double[]{-1024, -512, -128, 0, 128, 512, 1024};
+    public static final int[] CONTAINER_RAM_INCREMENT = new int[]{-1024, -512, -128, 0, 128, 512, 1024};
     public static final int MIN_CONTAINER_MIPS = 466;
     public static final int MIN_CONTAINER_RAM = 128;
     public static final int MAX_CONTAINER_MIPS = 11600;
@@ -110,39 +112,46 @@ public class Constants {
 
     /**
      * The population of hosts, containers, and VMs are specified.
-     * The containers population is equal to the cloudlets population as each cloudlet is mapped to each container.
-     * However, depending on the simualtion scenario the container's population can also be different from cloudlet's
+     * The containers population is equal to the requests population as each request is mapped to each container.
+     * However, depending on the simualtion scenario the container's population can also be different from request's
      * population.
      */
 
 
-    public static final int NUMBER_HOSTS = 27;
-    public static final int NUMBER_VMS = 50;
-    public static final int NUMBER_CLOUDLETS = 5;
+    public static final int NUMBER_HOSTS = 5;
+    public static final int NUMBER_VMS = 12;
+    public static final int NUMBER_requestS = 5;
 
     /**
      * Name of the file containing function requests list.
      */
 
-    public static final String FUNCTION_REQUESTS_FILENAME = "D:\\CloudSim\\data\\Synthetic_WL.csv";
+    public static final String FUNCTION_REQUESTS_FILENAME = "D:\\OneDrive - The University of Melbourne\\UniMelb\\Studying\\Serverless simulator\\CloudSimServerless\\modules\\cloudsim\\src\\main\\java\\org\\cloudbus\\cloudsim\\serverless\\Real_trace_test2_small.csv";
 
+//    public static final String FUNCTION_REQUESTS_FILENAME = "Real_trace_test2.csv";
 
     /**
      * Algorithm specific parameters
      */
     public static final double overUtilizationThreshold = 0.80;
     public static final double underUtilizationThreshold = 0.70;
-    public static final double containerScaleCPUThreshold = 0.50;
-    public static final boolean containerConcurrency = false;
-    public static final boolean functionHorizontalAutoscaling = false;
+    public static final double containerScaleCPUThreshold = 0.40;
+    public static final boolean containerConcurrency = true;
+    public static final boolean functionAutoScaling = true;
+    public static final boolean functionHorizontalAutoscaling = true;
     public static final boolean functionVerticalAutoscaling = false;
     public static final boolean scalePerRequest = false;
-    public static final String vmSelectionAlgo = "RM";
+    public static final String vmSelectionAlgo = "BPBF";
     public static final String horScalingLogic = "cpuThreshold";
+    public static final String scalingTriggerLogic = "cpuThreshold";
     public static final String containerSelectionAlgo = "FF";
-    public static final int max_reschedule_tries = 6;
+    public static final int max_reschedule_tries = 8;
     public static final boolean monitoring = true;
     public static final int maxReplicas = 50;
+
+    public static final boolean containerIdlingEnabled = false;
+
+    public static final int containerIdlingTime = 5;
 
 
 }

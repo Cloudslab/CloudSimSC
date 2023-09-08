@@ -57,31 +57,32 @@ public class FunctionScheduler extends PowerContainerAllocationPolicy {
         boolean vmSelected = false;
         switch (Constants.vmSelectionAlgo) {
             /** Selecting Vm using RR method **/
-            case "RR":
+            case "RR": {
                 for (int x = selectedVmIndex; x <= getContainerVmList().size(); x++) {
                     ServerlessInvoker tempSelectedVm = (ServerlessInvoker) (ContainerVmList.getById(getContainerVmList(), x));
-                    if (tempSelectedVm.isSuitableForContainer(container)) {
+                    if (tempSelectedVm.isSuitableForContainer(container, tempSelectedVm)) {
                         selectedVm = tempSelectedVm;
                         vmSelected = true;
                         break;
                     }
-//                    if (cloudlet.getReschedule()) {
-//                        if (tempSelectedVm == (ServerlessInvoker) (ContainerVmList.getById(getContainerVmList(), cloudlet.getVmId()))) {
+//                    if (request.getReschedule()) {
+//                        if (tempSelectedVm == (ServerlessInvoker) (ContainerVmList.getById(getContainerVmList(), request.getVmId()))) {
 //                            continue;
 //                        }
 //                    }
 
                 }
+
                 if (!vmSelected) {
                     for (int x = 1; x < selectedVmIndex; x++) {
                         ServerlessInvoker tempSelectedVm = (ServerlessInvoker) (ContainerVmList.getById(getContainerVmList(), x));
-                        if (tempSelectedVm.isSuitableForContainer(container)) {
+                        if (tempSelectedVm.isSuitableForContainer(container, tempSelectedVm)) {
                             selectedVm = tempSelectedVm;
                             vmSelected = true;
                             break;
                         }
-//                        if (cloudlet.getReschedule()) {
-//                            if (tempSelectedVm == (ServerlessInvoker) (ContainerVmList.getById(getVmsCreatedList(), cloudlet.getVmId()))) {
+//                        if (request.getReschedule()) {
+//                            if (tempSelectedVm == (ServerlessInvoker) (ContainerVmList.getById(getVmsCreatedList(), request.getVmId()))) {
 //                                continue;
 //                            }
 //                        }
@@ -90,54 +91,85 @@ public class FunctionScheduler extends PowerContainerAllocationPolicy {
                 System.out.println(CloudSim.clock() + " >>>>>>>>>>>>>>Debug:Broker: Selected VM is # " + selectedVmIndex + " for container # " + container.getId() + " under RR method");
 
 
-//                if (reschedule == false) {
-//                    cloudlet.setContainerId(containerId);
-//                    toSubmitOnContainerCreation.add(cloudlet);
-//                }
-//                if (cloudlet.getReschedule()) {
-//                    tasksToReschedule.put(cloudlet, containerId);
-//                    // System.out.println(CloudSim.clock() + " Debug:Broker: Need to create a new container# " + containerId + " to reschedule cloudlet # " + cl.getCloudletId());
-//
-//                }
-
                 if (selectedVmIndex == getContainerVmList().size()) {
                     selectedVmIndex = 1;
                 } else
                     selectedVmIndex++;
+                break;
+            }
 
                 /** Selecting Vm using Random method **/
-            case "RM":
+            case "RM": {
                 Random random = new Random();
-                while(!vmSelected) {
+                while (!vmSelected) {
                     int vmNo = random.nextInt(getContainerVmList().size() - 1);
                     ServerlessInvoker tempSelectedVm = (ServerlessInvoker) (ContainerVmList.getById(getContainerVmList(), vmNo));
-                    if (tempSelectedVm.isSuitableForContainer(container)) {
+                    if (tempSelectedVm.isSuitableForContainer(container, tempSelectedVm)) {
                         selectedVm = tempSelectedVm;
-                        vmSelected = true;
+//                        vmSelected = true;
                         break;
                     }
-//                    if (cloudlet.getReschedule()) {
-//                        if (tempSelectedVm == (ServerlessInvoker) (ContainerVmList.getById(getVmsCreatedList(), cloudlet.getVmId()))) {
+//                    if (request.getReschedule()) {
+//                        if (tempSelectedVm == (ServerlessInvoker) (ContainerVmList.getById(getVmsCreatedList(), request.getVmId()))) {
 //                            continue;
 //                        }
 //                    }
                 }
+                break;
+            }
 
-                System.out.println(CloudSim.clock() + " >>>>>>>>>>>>>>Debug:Broker: Selected VM is # " + selectedVmIndex + " for container # " + container.getId() + " under RR method");
+            case "BPFF": {
+                for (int x = 1; x <= getContainerVmList().size(); x++) {
+                    ServerlessInvoker tempSelectedVm = (ServerlessInvoker) (ContainerVmList.getById(getContainerVmList(), x));
+                    if (tempSelectedVm.isSuitableForContainer(container, tempSelectedVm)) {
+                        selectedVm = tempSelectedVm;
+//                        vmSelected = true;
+                        break;
+                    }
+                }
+                break;
+            }
 
-//                if (cloudlet.getReschedule()) {
-//                    tasksToReschedule.put(cloudlet, containerId);
-//                    // System.out.println(CloudSim.clock() + " Debug:Broker: Need to create a new container# " + containerId + " to reschedule cloudlet # " + cl.getCloudletId());
-//
-//                }
+
+
+            case "BPBF": {
+                double minRemainingCap = Double.MAX_VALUE;
+                for (int x = 1; x <= getContainerVmList().size(); x++) {
+                    ServerlessInvoker tempSelectedVm = (ServerlessInvoker) (ContainerVmList.getById(getContainerVmList(), x));
+//                    System.out.println(CloudSim.clock() + " >>>>>>>>>>>>>>Debug:Broker: Vm # " + tempSelectedVm.getId() + " has available ram of " + tempSelectedVm.getContainerRamProvisioner().getAvailableVmRam() + " needed ram "+ container.getRam());
+
+                    double vmCpuAvailability = tempSelectedVm.getAvailableMips() / tempSelectedVm.getTotalMips();
+                    if (tempSelectedVm.isSuitableForContainer(container, tempSelectedVm)) {
+                        if (vmCpuAvailability < minRemainingCap) {
+                            selectedVm = tempSelectedVm;
+                            minRemainingCap = vmCpuAvailability;
+                        }
+
+
+                    }
+                }
+
+            }
+
+
+            System.out.println(CloudSim.clock() + " >>>>>>>>>>>>>>Debug:Broker: Selected VM is # " + selectedVm.getId() + " for container # " + container.getId() + " under "+Constants.vmSelectionAlgo+" method");
+
         }
 
         return selectedVm;
 
     }
 
-    public boolean reallocateVmResourcesForContainer(Container container, ServerlessInvoker vm, ServerlessTasks cl) {
-        boolean result = vm.reallocateResourcesForContainer(container, cl);
+    @Override
+    public void deallocateVmForContainer(Container container) {
+        ContainerVm containerVm = getContainerTable().remove(container.getUid());
+        if (containerVm != null) {
+            ((ServerlessInvoker)containerVm).containerDestroy(container);
+        }
+    }
+
+    public boolean reallocateVmResourcesForContainer(Container container, ServerlessInvoker vm, int cpuChange, int memChange) {
+        boolean result = vm.reallocateResourcesForContainer(container, cpuChange, memChange);
 
         return result;
 

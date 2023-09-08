@@ -27,17 +27,17 @@ public class ServerlessInvoker extends PowerContainerVm {
 
     private Map<String, Integer> vmTaskMap = new HashMap<>();
     /**
-     * Records the cloudlets in execution as per the execution order
+     * Records the requests in execution as per the execution order
      */
 
-    private Stack<ServerlessTasks> runningCloudletStack = new Stack<ServerlessTasks>();
-    private  ArrayList<ServerlessTasks> runningCloudletList = new ArrayList<>();
+    private Stack<ServerlessRequest> runningrequestStack = new Stack<ServerlessRequest>();
+    private  ArrayList<ServerlessRequest> runningrequestList = new ArrayList<>();
 
     /**
      * The task  map of vm - contains the function type and the task
      */
-    private Map<String, ArrayList<ServerlessTasks>> vmTaskExecutionMap = new HashMap<>();
-    private Map<String, ArrayList<ServerlessTasks>> vmTaskExecutionMapFull = new HashMap<>();
+    private Map<String, ArrayList<ServerlessRequest>> vmTaskExecutionMap = new HashMap<>();
+    private Map<String, ArrayList<ServerlessRequest>> vmTaskExecutionMapFull = new HashMap<>();
 
     /**
      * On Off status of VM
@@ -63,13 +63,13 @@ public class ServerlessInvoker extends PowerContainerVm {
 
     public Map<String, Integer> getvmTaskMap(){return vmTaskMap;}
 
-    public Map<String, ArrayList<ServerlessTasks>> getVmTaskExecutionMap(){return vmTaskExecutionMap;}
-    public Map<String, ArrayList<ServerlessTasks>> getVmTaskExecutionMapFull(){return vmTaskExecutionMapFull;}
+    public Map<String, ArrayList<ServerlessRequest>> getVmTaskExecutionMap(){return vmTaskExecutionMap;}
+    public Map<String, ArrayList<ServerlessRequest>> getVmTaskExecutionMapFull(){return vmTaskExecutionMapFull;}
     public String getStatus(){
         return status;
     }
-    public ArrayList<ServerlessTasks> getRunningCloudletList() {
-        return runningCloudletList;
+    public ArrayList<ServerlessRequest> getRunningRequestList() {
+        return runningrequestList;
     }
 
     public void setStatus(String vmStatus){
@@ -117,45 +117,45 @@ public class ServerlessInvoker extends PowerContainerVm {
         }
     }
 
-    @Override
+//    @Override
     /** Insert the policy for selecting a VM when container concurrency is enableld **/
-    public boolean isSuitableForContainer(Container container) {
+    public boolean isSuitableForContainer(Container container, ServerlessInvoker vm) {
 
-        return (((ServerlessContainerScheduler)getContainerScheduler()).isSuitableForContainer(container)
+        return (((ServerlessContainerScheduler)getContainerScheduler()).isSuitableForContainer(container, vm)
                 && getContainerRamProvisioner().isSuitableForContainer(container, container.getCurrentRequestedRam()) && getContainerBwProvisioner()
                 .isSuitableForContainer(container, container.getCurrentRequestedBw()));
     }
 
-    public void addToVmTaskExecutionMap(ServerlessTasks task, ServerlessInvoker vm){
+    public void addToVmTaskExecutionMap(ServerlessRequest task, ServerlessInvoker vm){
 
         /** Adding to full task map **/
-        int countFull = vmTaskExecutionMapFull.containsKey(task.getcloudletFunctionId()) ? (vmTaskExecutionMapFull.get(task.getcloudletFunctionId())).size(): 0;
+        int countFull = vmTaskExecutionMapFull.containsKey(task.getRequestFunctionId()) ? (vmTaskExecutionMapFull.get(task.getRequestFunctionId())).size(): 0;
 
         if(countFull == 0){
-            ArrayList<ServerlessTasks> taskListFull = new ArrayList<>();
+            ArrayList<ServerlessRequest> taskListFull = new ArrayList<>();
             taskListFull.add(task);
-            vmTaskExecutionMapFull.put(task.getcloudletFunctionId(),taskListFull);
+            vmTaskExecutionMapFull.put(task.getRequestFunctionId(),taskListFull);
         }
         else{
-            vmTaskExecutionMapFull.get(task.getcloudletFunctionId()).add(task);
+            vmTaskExecutionMapFull.get(task.getRequestFunctionId()).add(task);
         }
 
         /** Adding to moving average task map **/
 
-        int count = vmTaskExecutionMap.containsKey(task.getcloudletFunctionId()) ? (vmTaskExecutionMap.get(task.getcloudletFunctionId())).size(): 0;
-        //vm.getVmTaskExecutionMap().put(task.getcloudletFunctionId(), count+1);
+        int count = vmTaskExecutionMap.containsKey(task.getRequestFunctionId()) ? (vmTaskExecutionMap.get(task.getRequestFunctionId())).size(): 0;
+        //vm.getVmTaskExecutionMap().put(task.getrequestFunctionId(), count+1);
 
         if(count == 0){
-            ArrayList<ServerlessTasks> taskList = new ArrayList<>();
+            ArrayList<ServerlessRequest> taskList = new ArrayList<>();
             taskList.add(task);
-            vmTaskExecutionMap.put(task.getcloudletFunctionId(),taskList);
+            vmTaskExecutionMap.put(task.getRequestFunctionId(),taskList);
         }
         else{
-            vmTaskExecutionMap.get(task.getcloudletFunctionId()).add(task);
+            vmTaskExecutionMap.get(task.getRequestFunctionId()).add(task);
         }
 
         if(count ==Constants.WINDOW_SIZE){
-            vmTaskExecutionMap.get(task.getcloudletFunctionId()).remove(0);
+            vmTaskExecutionMap.get(task.getRequestFunctionId()).remove(0);
         }
 
 
@@ -252,7 +252,7 @@ public class ServerlessInvoker extends PowerContainerVm {
                 Log.printConcatLine("The container", container.getId(), " is still here");
 //                getContainerList().remove(container);
             }
-            container.setVm(null);
+//            container.setVm(null);
             System.out.println("Container# "+container.getId()+" is destroyed. Now redistribute");
             /*** OW ImplementATION ***/
 //            ((ServerlessDatacenter)(this.getHost().getDatacenter())).reprovisionMipsToAllContainers(this);
@@ -267,16 +267,16 @@ public class ServerlessInvoker extends PowerContainerVm {
         /*** VM with the longest run time based on execution time of functions in execution ***/
         double longestRunTimeVm = 0;
         /**
-         * The longest reaming run time of the cloudlets running on each container
+         * The longest reaming run time of the requests running on each container
          */
 
         Map<Integer, Double> runTimeContainer = new HashMap<Integer, Double>();
 
         Map<Integer, Double> containerQueuingTime = new HashMap<Integer, Double>();
 
-        if(CloudSim.clock()==10.086298204832925){
-            System.out.println("Debug");
-        }
+//        if(CloudSim.clock()>12){
+//            System.out.println("Debug");
+//        }
         double returnTime = 0;
         double CPUUtilization = 0;
         double usedMIPS = 0;
@@ -290,9 +290,20 @@ public class ServerlessInvoker extends PowerContainerVm {
             for (Container container : getContainerList()) {
                 double time = ((ServerlessContainer) container).updateContainerProcessing(currentTime, getContainerScheduler().getAllocatedMipsForContainer(container), this);
 
-                /** If no future event, destroy this container*/
-                if(time==0 || time == Double.MAX_VALUE){
-                    ((ServerlessDatacenter)(this.getHost().getDatacenter())).getContainersToDestroy().add(container);
+                /** If no future event, destroy this container if auto-scaling is not enabled*/
+                if((time==0 || time == Double.MAX_VALUE) && !Constants.functionAutoScaling){
+                    if (!((ServerlessContainer) container).newContainer && !((ServerlessContainer) container).getIdling()) {
+                            ((ServerlessDatacenter)(this.getHost().getDatacenter())).getContainersToDestroy().add(container);
+                            if (Constants.containerIdlingEnabled) {
+                                ((ServerlessContainer) container).setIdleStartTime(CloudSim.clock());
+                                ((ServerlessContainer) container).setIdling(true);
+                            }
+
+
+
+                    }
+//                    ((ServerlessDatacenter)(this.getHost().getDatacenter())).getContainersToDestroy().add(container);
+//                    ((ServerlessContainer) container).setIdleStartTime(CloudSim.clock());
 //                    System.out.println(CloudSim.clock()+" Debug:While processing destroy container "+container.getId());
                 }
                 if (time > 0.0 && time < smallerTime) {
@@ -300,9 +311,9 @@ public class ServerlessInvoker extends PowerContainerVm {
                 }
 
                 /** Updates the longest remaining run time of each vm and each container in the vms */
-                double longestTime = ((ServerlessCloudletScheduler) container.getContainerCloudletScheduler()).getLongestRunTime();
+                double longestTime = ((ServerlessRequestScheduler) container.getContainerCloudletScheduler()).getLongestRunTime();
                 runTimeContainer.put(container.getId(),longestTime);
-                containerQueuingTime.put(container.getId(),((ServerlessCloudletScheduler) container.getContainerCloudletScheduler()).getContainerQueueTime());
+                containerQueuingTime.put(container.getId(),((ServerlessRequestScheduler) container.getContainerCloudletScheduler()).getContainerQueueTime());
 
 
                 if(longestTime>longestRunTimeVm){
@@ -343,31 +354,32 @@ public class ServerlessInvoker extends PowerContainerVm {
         return returnTime;
     }
 
-    public boolean reallocateResourcesForContainer(Container container, ServerlessTasks cl){
+    public boolean reallocateResourcesForContainer(Container container, int cpuChange, int memChange){
         /*float newRam = container.getCurrentAllocatedRam()+Constants.RAM_INCREMENT;
         double newMIPS = newRam / this.getRam() * this.getTotalMips();*/
         System.out.println("Container #"+container.getId()+" originally has "+container.getMips()+" MIPS and "+container.getRam()+" ram");
 
-        double maxRemainingCPUQuota = this.getMips()-container.getMips();
-        double maxQuotaAddition = Math.min(maxRemainingCPUQuota, this.getAvailableMips());
-        System.out.println("Max CPU uota addition is "+ maxQuotaAddition);
-        double newMIPS=0;
-        if(cl.getPriority()==2) {
-            newMIPS = container.getMips() + this.getMips() * Constants.CPU_QUOTA_INCREMENT_LOW;
+//        double maxRemainingCPUQuota = this.getMips()-container.getMips();
+//        double maxQuotaAddition = Math.min(maxRemainingCPUQuota, this.getAvailableMips());
+//        System.out.println("Max CPU uota addition is "+ maxQuotaAddition);
+//        double newMIPS=0;
+//        if(cl.getPriority()==2) {
+//            newMIPS = container.getMips() + this.getMips() * Constants.CPU_QUOTA_INCREMENT_LOW;
+//
+//        }
+//        else{
+//            newMIPS = container.getMips() + this.getMips() * Constants.CPU_QUOTA_INCREMENT_HIGH;
+//        }
+//        if(newMIPS>container.getMips()+maxQuotaAddition){
+////            return false;
+//            newMIPS = container.getMips()+maxQuotaAddition;
+//        }
+        float newRam = (float)(container.getRam()+ memChange);
+        double newMIPS= container.getMips() + cpuChange;
+        System.out.println("Vm Available ram : "+getContainerRamProvisioner().getAvailableVmRam()+" Requested new additional ram for container: "+memChange);
+        System.out.println("Vm Available  MIPS : "+this.getAvailableMips()+" Requested additional MIPS: "+ cpuChange*container.getNumberOfPes());
 
-        }
-        else{
-            newMIPS = container.getMips() + this.getMips() * Constants.CPU_QUOTA_INCREMENT_HIGH;
-        }
-        if(newMIPS>container.getMips()+maxQuotaAddition){
-//            return false;
-            newMIPS = container.getMips()+maxQuotaAddition;
-        }
-        float newRam = (float)(this.getRam()*(newMIPS/(this.getTotalMips())));
-        System.out.println("Vm Available ram : "+getContainerRamProvisioner().getAvailableVmRam()+" Requested new ram for container: "+newRam);
-        System.out.println("Vm Available  MIPS : "+this.getAvailableMips()+" Requested additional MIPS: "+(newMIPS-container.getMips()));
-
-        if(newMIPS>this.getMips()){
+        if(container.getMips()+cpuChange>this.getMips()){
             //System.out.println(CloudSim.clock()+ " Debug:Container has reached max MIPS of "+ this.getMips());
             /*if(container.getId()==5){
                 System.out.println("Debug");
@@ -377,12 +389,12 @@ public class ServerlessInvoker extends PowerContainerVm {
         else {
 
 
-            if (!(getContainerRamProvisioner().getAvailableVmRam()+container.getRam() >= newRam)) {
+            if (!(getContainerRamProvisioner().getAvailableVmRam() >= memChange)) {
 
                 // System.out.println("Available ram : "+getContainerRamProvisioner().getAvailableVmRam()+" Requested ram: "+newRam+"  Thus Vm ram not enough to reallocate");
                 return false;
             }
-            if (!(this.getAvailableMips()+container.getMips() >= newMIPS)) {
+            if (!(this.getAvailableMips() >= cpuChange*container.getNumberOfPes())) {
                 System.out.println("Vm MIPS not enough to reallocate");
                 return false;
             }
@@ -402,7 +414,7 @@ public class ServerlessInvoker extends PowerContainerVm {
 
             System.out.println("Debugging: Reallocated resources to container. Now available MIPS of VM #" + this.getId() + " is " + getAvailableMips());
             container.setRam(Math.round(newRam));
-            ((ServerlessCloudletScheduler) container.getContainerCloudletScheduler()).setTotalMips(newMIPS);
+            ((ServerlessRequestScheduler) container.getContainerCloudletScheduler()).setTotalMips(newMIPS);
             return true;
         }
     }

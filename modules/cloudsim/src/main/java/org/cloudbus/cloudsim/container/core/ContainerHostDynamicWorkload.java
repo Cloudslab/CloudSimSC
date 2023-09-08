@@ -72,29 +72,29 @@ public class ContainerHostDynamicWorkload extends ContainerHost{
                 double totalRequestedMips = containerVm.getCurrentRequestedTotalMips();
                 double totalAllocatedMips = getContainerVmScheduler().getTotalAllocatedMipsForContainerVm(containerVm);
 
-                if (!Log.isDisabled()) {
-                    Log.formatLine(
-                            "%.2f: [Host #" + getId() + "] Total allocated MIPS for VM #" + containerVm.getId()
-                                    + " (Host #" + containerVm.getHost().getId()
-                                    + ") is %.2f, was requested %.2f out of total %.2f (%.2f%%)",
-                            CloudSim.clock(),
-                            totalAllocatedMips,
-                            totalRequestedMips,
-                            containerVm.getMips(),
-                            totalRequestedMips / containerVm.getMips() * 100);
-
-                    List<ContainerVmPe> pes = getContainerVmScheduler().getPesAllocatedForContainerVM(containerVm);
-                    StringBuilder pesString = new StringBuilder();
-                    for (ContainerVmPe pe : pes) {
-                        pesString.append(String.format(" PE #" + pe.getId() + ": %.2f.", pe.getContainerVmPeProvisioner()
-                                .getTotalAllocatedMipsForContainerVm(containerVm)));
-                    }
-                    Log.formatLine(
-                            "%.2f: [Host #" + getId() + "] MIPS for VM #" + containerVm.getId() + " by PEs ("
-                                    + getNumberOfPes() + " * " + getContainerVmScheduler().getPeCapacity() + ")."
-                                    + pesString,
-                            CloudSim.clock());
-                }
+//                if (!Log.isDisabled()) {
+//                    Log.formatLine(
+//                            "%.2f: [Host #" + getId() + "] Total allocated MIPS for VM #" + containerVm.getId()
+//                                    + " (Host #" + containerVm.getHost().getId()
+//                                    + ") is %.2f, was requested %.2f out of total %.2f (%.2f%%)",
+//                            CloudSim.clock(),
+//                            totalAllocatedMips,
+//                            totalRequestedMips,
+//                            containerVm.getMips(),
+//                            totalRequestedMips / containerVm.getMips() * 100);
+//
+//                    List<ContainerVmPe> pes = getContainerVmScheduler().getPesAllocatedForContainerVM(containerVm);
+//                    StringBuilder pesString = new StringBuilder();
+//                    for (ContainerVmPe pe : pes) {
+//                        pesString.append(String.format(" PE #" + pe.getId() + ": %.2f.", pe.getContainerVmPeProvisioner()
+//                                .getTotalAllocatedMipsForContainerVm(containerVm)));
+//                    }
+//                    Log.formatLine(
+//                            "%.2f: [Host #" + getId() + "] MIPS for VM #" + containerVm.getId() + " by PEs ("
+//                                    + getNumberOfPes() + " * " + getContainerVmScheduler().getPeCapacity() + ")."
+//                                    + pesString,
+//                            CloudSim.clock());
+//                }
 
                 if (getVmsMigratingIn().contains(containerVm)) {
                     Log.formatLine("%.2f: [Host #" + getId() + "] VM #" + containerVm.getId()

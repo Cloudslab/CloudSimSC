@@ -19,8 +19,9 @@ public class ServerlessContainerRamProvisioner extends ContainerRamProvisionerSi
             ram = maxRam;
         }*/
 
-        System.out.println("Debug: Before: Ramprovisioner: Available ram : "+getAvailableVmRam()+" Requested ram: "+ram);
         deallocateRamForContainer(container);
+        System.out.println("Debug: Before: Ramprovisioner: Available ram : "+getAvailableVmRam()+" Requested ram: "+ram);
+
 
 
         if (getAvailableVmRam() >= ram) {
@@ -34,7 +35,7 @@ public class ServerlessContainerRamProvisioner extends ContainerRamProvisionerSi
 
 
 
-        container.setCurrentAllocatedRam(getAllocatedRamForContainer(container));
+        container.setCurrentAllocatedRam(oldRam);
 
         return false;
     }

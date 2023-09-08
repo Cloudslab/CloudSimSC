@@ -4,14 +4,14 @@ import org.cloudbus.cloudsim.UtilizationModel;
 import org.cloudbus.cloudsim.container.core.ContainerCloudlet;
 import org.cloudbus.cloudsim.core.CloudSim;
 
-import java.util.List;
+public class ServerlessRequest extends ContainerCloudlet {
 
-public class ServerlessTasks extends ContainerCloudlet {
-
-    private String cloudletType = null;
-    private String cloudletFunctionId = null;
-    private int cloudletMemory = 0;
-    private int cloudletCPU = 0;
+    private String requestType = null;
+    private String requestFunctionId = null;
+    private int containerMemory = 0;
+    private long containerMIPS = 0;
+    private double cpuShareReq = 0;
+    private double memShareReq = 0;
     private double maxExecTime = 0;
     private double arrivalTime = 0;
     public boolean reschedule = false;
@@ -19,41 +19,50 @@ public class ServerlessTasks extends ContainerCloudlet {
     public int retry = 0;
     private int priority = 0;
     private UtilizationModelPartial utilizationModelCpu;
+    private UtilizationModelPartial utilizationModelRam;
 
-    public ServerlessTasks(int cloudletId, double arrivalTime, String cloudletType, String cloudletFunctionId, long cloudletLength, int pesNumber, int memory, double maxExecTime, int priority, long cloudletFileSize, long cloudletOutputSize, UtilizationModelPartial utilizationModelCpu, UtilizationModel utilizationModelRam, UtilizationModel utilizationModelBw, boolean reschedule, int retry, boolean success) {
-        super(cloudletId, cloudletLength, pesNumber, cloudletFileSize, cloudletOutputSize, utilizationModelCpu, utilizationModelRam, utilizationModelBw);
+    public ServerlessRequest(int requestId, double arrivalTime, String requestFunctionId, long requestLength, int pesNumber,  int containerMemory, long containerMIPS,  double cpuShareReq, double memShareReq, long requestFileSize, long requestOutputSize, UtilizationModelPartial utilizationModelCpu, UtilizationModelPartial utilizationModelRam, UtilizationModel utilizationModelBw, int retry, boolean success) {
+        super(requestId, requestLength, pesNumber, requestFileSize, requestOutputSize, utilizationModelCpu, utilizationModelRam, utilizationModelBw);
 
-        setCloudletType(cloudletType);
-        setCloudletFunctionId(cloudletFunctionId);
-        setcloudletMemory(memory);
-        setMaxExecTime(maxExecTime);
+//        setRequestType(requestType);
+        setRequestFunctionId(requestFunctionId);
+        setContainerMemory(containerMemory);
+        setContainerMIPS(containerMIPS);
+//        setMaxExecTime(maxExecTime);
         setArrivalTime(arrivalTime);
         setPriority(priority);
-        setReschedule(reschedule);
+//        setReschedule(reschedule);
         setSuccess(success);
         setRetry(retry);
         setUtilizationModelCpu(utilizationModelCpu);
+        setUtilizationModelRam(utilizationModelCpu);
+        setCpuShareRequest(cpuShareReq);
+        setMemShareRequest(memShareReq);
     }
 
-    public void setCloudletType(String cloudletType){this.cloudletType = cloudletType;}
+    public void setRequestType(String requestType){this.requestType = requestType;}
     public void setPriority(int priority){this.priority = priority;}
-    public void setCloudletFunctionId(String cloudletFunctionId){this.cloudletFunctionId = cloudletFunctionId;}
-    public void setcloudletMemory(int cloudletMemory){this.cloudletMemory = cloudletMemory;}
-    public void setcloudletCPU(int cloudletCPU){this.cloudletCPU = cloudletCPU;}
+    public void setRequestFunctionId(String requestFunctionId){this.requestFunctionId = requestFunctionId;}
+    public void setContainerMemory(int containerMemory){this.containerMemory = containerMemory;}
+    public void setContainerMIPS(long containerMIPS){this.containerMIPS = containerMIPS;}
+    public void setCpuShareRequest(double cpuShareReq){this.cpuShareReq = cpuShareReq;}
+    public void setMemShareRequest(double memShareReq){this.memShareReq = memShareReq;}
     public void setMaxExecTime(double maxExecTime){this.maxExecTime = maxExecTime;}
     public void setArrivalTime(double arrivalTime){this.arrivalTime = arrivalTime;}
-    public void setReschedule(boolean reschedule){this.reschedule = reschedule;}
+//    public void setReschedule(boolean reschedule){this.reschedule = reschedule;}
     public void setSuccess(boolean success){this.success = success;}
     public void setRetry(int retry){this.retry = retry;}
 
-    public String getcloudletType() {return cloudletType;}
-    public String getcloudletFunctionId() {return cloudletFunctionId;}
-    public int getcloudletMemory() {return cloudletMemory;}
-    public int getcloudletCPU() {return cloudletCPU;}
+    public String getRequestType() {return requestType;}
+    public String getRequestFunctionId() {return requestFunctionId;}
+    public int getContainerMemory() {return containerMemory;}
+    public long getContainerMIPS() {return containerMIPS;}
+    public double getCpuShareRequest() {return cpuShareReq;}
+    public double getMemShareRequest() {return memShareReq;}
     public double getMaxExecTime() {return maxExecTime;}
     public int getPriority() {return priority;}
     public double getArrivalTime() {return arrivalTime;}
-    public boolean getReschedule() {return reschedule;}
+//    public boolean getReschedule() {return reschedule;}
     public boolean getSuccess() {return success;}
     public int getRetry() {return retry;}
 
@@ -69,12 +78,12 @@ public class ServerlessTasks extends ContainerCloudlet {
         resList.add(res);
 
         if (index == -1 && record) {
-            write("Allocates this Cloudlet to " + res.resourceName + " (ID #" + resourceID
+            write("Allocates this request to " + res.resourceName + " (ID #" + resourceID
                     + ") with cost = $" + cost + "/sec");
         } else if (record) {
             final int id = resList.get(index).resourceId;
             final String name = resList.get(index).resourceName;
-            write("Moves Cloudlet from " + name + " (ID #" + id + ") to " + res.resourceName + " (ID #"
+            write("Moves request from " + name + " (ID #" + id + ") to " + res.resourceName + " (ID #"
                     + resourceID + ") with cost = $" + cost + "/sec");
         }
 
@@ -102,15 +111,25 @@ public class ServerlessTasks extends ContainerCloudlet {
     }
 
     public double getUtilizationOfCpu() {
-        return getUtilizationModelCpu().getFuncUtilization(this.cloudletFunctionId);
+        return getUtilizationModelCpu().getCpuUtilization(this);
     }
 
+    public double getUtilizationOfRam() {
+        return getUtilizationModelRam().getMemUtilization(this);
+    }
     public void setUtilizationModelCpu(final UtilizationModelPartial utilizationModelCpu) {
         this.utilizationModelCpu = utilizationModelCpu;
     }
 
+    public void setUtilizationModelRam(final UtilizationModelPartial utilizationModelRam) {
+        this.utilizationModelRam = utilizationModelRam;
+    }
+
     public UtilizationModelPartial getUtilizationModelCpu() {
         return utilizationModelCpu;
+    }
+    public UtilizationModelPartial getUtilizationModelRam() {
+        return utilizationModelRam;
     }
 
 }

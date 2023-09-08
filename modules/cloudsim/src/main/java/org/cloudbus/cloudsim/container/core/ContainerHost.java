@@ -107,6 +107,7 @@ public class ContainerHost {
     public double updateContainerVmsProcessing(double currentTime) {
         double smallerTime = Double.MAX_VALUE;
 
+
         for (ContainerVm containerVm : getVmList()) {
             double time = containerVm.updateVmProcessing(currentTime, getContainerVmScheduler().getAllocatedMipsForContainerVm(containerVm));
             if (time > 0.0 && time < smallerTime) {

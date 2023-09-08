@@ -1,66 +1,49 @@
 package org.cloudbus.cloudsim.serverless;
-
-import org.cloudbus.cloudsim.Cloudlet;
-import org.cloudbus.cloudsim.Consts;
+import org.cloudbus.cloudsim.Log;
 import org.cloudbus.cloudsim.ResCloudlet;
+import org.cloudbus.cloudsim.Consts;
 import org.cloudbus.cloudsim.container.schedulers.ContainerCloudletSchedulerDynamicWorkload;
 import org.cloudbus.cloudsim.core.CloudSim;
-
+import org.cloudbus.cloudsim.Cloudlet;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynamicWorkload {
-
+public class ServerlessRequestScheduler extends ContainerCloudletSchedulerDynamicWorkload {
+    int x=0;
     private double longestRunTimeContainer = 0;
     private double containerQueueTime = 0;
     protected int currentCpus=0;
     protected int usedPes=0;
-    /** The total current mips requested from each pe by all cloudlets allocated to this container. */
-    private List<Double> totalCurrentRequestedMipsShareForCloudlets ;
-    /** The total current mips allocated to all cloudlets running in this container from each pe. */
-    private List<Double> totalCurrentAllocatedMipsShareForCloudlets;
+    /** The total current mips requested from each pe by all requests allocated to this container. */
+    private double totalCurrentRequestedMipsShareForRequests ;
+    /** The total current mips allocated to all requests running in this container from each pe. */
+    private double totalCurrentAllocatedMipsShareForRequests ;
 
-    /** The total current ram requested by all cloudlets allocated to this container. */
-    private double totalCurrentRequestedRamForCloudlets ;
-    /** The total current ram allocated to all cloudlets running in this container. */
-    private double totalCurrentAllocatedRamForCloudlets;
+    /** The total current ram requested by all requests allocated to this container. */
+    private double totalCurrentRequestedRamForRequests ;
+    /** The total current ram allocated to all requests running in this container. */
+    private double totalCurrentAllocatedRamForRequests;
 
-    public ServerlessCloudletScheduler(double mips, int numberOfPes) {
+    public ServerlessRequestScheduler(double mips, int numberOfPes) {
         super(mips,numberOfPes);
 
     }
-    public boolean setTotalCurrentRequestedMipsShareForCloudlets(ServerlessTasks cl) {
-        int assignedPes = 0;
-        int x = 0;
-        List<Double> currentRequested = totalCurrentRequestedMipsShareForCloudlets;
-        while (assignedPes < cl.getNumberOfPes()){
-            if (cl.getUtilizationOfCpu() <= (1 - currentRequested.get(x))){
-                assignedPes ++;
-                totalCurrentRequestedMipsShareForCloudlets.add(x, currentRequested.get(x) + cl.getUtilizationOfCpu());
-            }
-            x++;
+    public boolean setTotalCurrentRequestedMipsShareForRequests(ServerlessRequest cl) {
+        if ((cl.getNumberOfPes() <= getNumberOfPes()) && (cl.getUtilizationOfCpu() <= 1 - totalCurrentRequestedMipsShareForRequests)){
+            totalCurrentRequestedMipsShareForRequests += cl.getUtilizationOfCpu();
+            return true;
         }
-
-        return assignedPes == cl.getNumberOfPes();
-    }
-    public boolean setTotalCurrentAllocatedMipsShareForCloudlets(ServerlessTasks cl) {
-        int assignedPes = 0;
-        int x = 0;
-        List<Double> currentAllocated = totalCurrentAllocatedMipsShareForCloudlets;
-        while (assignedPes < cl.getNumberOfPes()){
-            if (cl.getUtilizationOfCpu() <= (1 - currentAllocated.get(x))){
-                assignedPes ++;
-                totalCurrentAllocatedMipsShareForCloudlets.add(x, currentAllocated.get(x) + cl.getUtilizationOfCpu());
-            }
-            x++;
+        else {
+            return false;
         }
-
-        return assignedPes == cl.getNumberOfPes();
     }
-    public boolean setTotalCurrentRequestedRamForCloudlets(ServerlessTasks cl, ServerlessContainer cont) {
-        double currentRequested = totalCurrentRequestedRamForCloudlets;
-        if (cl.getcloudletMemory() <= cont.getRam() - currentRequested){
-            totalCurrentRequestedRamForCloudlets += cl.getcloudletMemory();
+    public void setTotalCurrentAllocatedMipsShareForRequests(ServerlessRequest cl) {
+     totalCurrentAllocatedMipsShareForRequests += cl.getUtilizationOfCpu();
+    }
+    public boolean setTotalCurrentRequestedRamForRequests(ServerlessRequest cl, ServerlessContainer cont) {
+        double currentRequested = totalCurrentRequestedRamForRequests;
+        if (cl.getContainerMemory()*cl.getUtilizationOfRam() <= cont.getRam() - currentRequested){
+            totalCurrentRequestedRamForRequests += cl.getContainerMemory()*cl.getUtilizationOfRam();
             return true;
         }
         else{
@@ -69,31 +52,33 @@ public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynam
 
     }
 
-    public boolean setTotalCurrentAllocatedRamForCloudlets(ServerlessTasks cl, ServerlessContainer cont) {
-        double currentAllocated = totalCurrentAllocatedRamForCloudlets;
-        if (cl.getcloudletMemory() <= cont.getRam() - currentAllocated){
-            totalCurrentAllocatedRamForCloudlets += cl.getcloudletMemory();
-            return true;
-        }
-        else{
-            return false;
-        }
-
+    public void setTotalCurrentAllocatedRamForRequests(ServerlessRequest cl) {
+        totalCurrentAllocatedRamForRequests += cl.getContainerMemory()*cl.getUtilizationOfRam();
+    }
+    public boolean isSuitableForRequest(ServerlessRequest cl, ServerlessContainer cont) {
+        Log.printLine(String.format("Current allocated ram of cont #%s is #%s and requested ram of cl #%s is %s", cont.getId(), totalCurrentAllocatedRamForRequests, cl.getCloudletId(), cl.getContainerMemory()*cl.getUtilizationOfRam()));
+        Log.printLine(String.format("Current allocated mips of cont #%s is #%s and requested mips of cl #%s is %s", cont.getId(), totalCurrentAllocatedMipsShareForRequests, cl.getCloudletId(), cl.getUtilizationOfCpu()));
+        return (cl.getContainerMemory() * cl.getUtilizationOfRam() <= (cont.getRam() - totalCurrentAllocatedRamForRequests)) && (cl.getNumberOfPes() <= getNumberOfPes()) && (cl.getUtilizationOfCpu() <= 1 - totalCurrentAllocatedMipsShareForRequests);
     }
 
-    public List<Double> getTotalCurrentRequestedMipsShareForCloudlets() {
-        return totalCurrentRequestedMipsShareForCloudlets;
+    public void deAllocateResources(ServerlessRequest cl){
+        totalCurrentAllocatedRamForRequests -= cl.getContainerMemory()*cl.getUtilizationOfRam();
+        totalCurrentAllocatedMipsShareForRequests -= cl.getUtilizationOfCpu();
+
     }
-    public List<Double> getTotalCurrentAllocatedMipsShareForCloudlets() {
-        return totalCurrentAllocatedMipsShareForCloudlets;
+    public double getTotalCurrentRequestedMipsShareForRequests() {
+        return totalCurrentRequestedMipsShareForRequests;
     }
-    public double getTotalCurrentAllocatedRamForCloudlets() {
-        return totalCurrentAllocatedRamForCloudlets;
+    public double getTotalCurrentAllocatedMipsShareForRequests() {
+        return totalCurrentAllocatedMipsShareForRequests;
+    }
+    public double getTotalCurrentAllocatedRamForRequests() {
+        return totalCurrentAllocatedRamForRequests;
     }
     @Override
-//    allocated mips to be calculated using no of pes allocated for the cloudlet (not to the entire container) * utilization % of cloudlet
+//    allocated mips to be calculated using no of pes allocated for the request (not to the entire container) * utilization % of request
     public double getEstimatedFinishTime(ResCloudlet rcl, double time) {
-        ServerlessTasks cl =(ServerlessTasks)(rcl.getCloudlet());
+        ServerlessRequest cl =(ServerlessRequest)(rcl.getCloudlet());
         return time
                 + ((rcl.getRemainingCloudletLength()) / (cl.getNumberOfPes()*this.getMips()*cl.getUtilizationOfCpu()));
     }
@@ -106,36 +91,36 @@ public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynam
         return containerQueueTime;
     }
 
-//    Is called each time a cloudlet is finally submitted to DC
-    public double cloudletSubmit(ServerlessTasks cl, ServerlessInvoker vm, ServerlessContainer cont) {
-        if (!Constants.containerConcurrency){
-            setTotalCurrentAllocatedMipsShareForCloudlets(cl);
-            setTotalCurrentAllocatedRamForCloudlets(cl, cont);
+//    Is called each time a request is finally submitted to DC
+    public double requestSubmit(ServerlessRequest cl, ServerlessInvoker vm, ServerlessContainer cont) {
+        if (!Constants.containerConcurrency || Constants.scalePerRequest){
+        setTotalCurrentAllocatedMipsShareForRequests(cl);
+        setTotalCurrentAllocatedRamForRequests(cl);
         }
         ResCloudlet rcl = new ResCloudlet(cl);
         rcl.setCloudletStatus(Cloudlet.INEXEC);
-        vm.getRunningCloudletList(). add((ServerlessTasks) cl);
+        vm.getRunningRequestList(). add((ServerlessRequest) cl);
         rcl.setCloudletStatus(Cloudlet.INEXEC);
-        vm.getRunningCloudletList(). add((ServerlessTasks) cl);
-        //vm.getRunningCloudletStack().push((ServerlessTasks)cl);
+        vm.getRunningRequestList(). add((ServerlessRequest) cl);
+        //vm.getRunningrequestStack().push((ServerlessRequest)cl);
 //            boolean added = false;
-//            for(int x=0; x< vm.getRunningCloudletList().size(); x++){
-//                if((((ServerlessTasks) cl).getArrivalTime()+((ServerlessTasks) cl).getMaxExecTime()<=vm.getRunningCloudletList().get(x).getArrivalTime()+vm.getRunningCloudletList().get(x).getMaxExecTime())){
-//                    vm.getRunningCloudletList().add(x,((ServerlessTasks) cl));
+//            for(int x=0; x< vm.getRunningrequestList().size(); x++){
+//                if((((ServerlessRequest) cl).getArrivalTime()+((ServerlessRequest) cl).getMaxExecTime()<=vm.getRunningrequestList().get(x).getArrivalTime()+vm.getRunningrequestList().get(x).getMaxExecTime())){
+//                    vm.getRunningrequestList().add(x,((ServerlessRequest) cl));
 //                    added = true;
 //                    break;
 //                }
 //            }
 //            if(added == false){
-//                vm.getRunningCloudletList(). add((ServerlessTasks) cl);
+//                vm.getRunningrequestList(). add((ServerlessRequest) cl);
 //            }
         for (int i = 0; i < cl.getNumberOfPes(); i++) {
             rcl.setMachineAndPeId(0, i);
         }
         getCloudletExecList().add(rcl);
-        //System.out.println("Cloudlet "+cl.getCloudletId()+" is added to exec list of container "+ ((ServerlessTasks) cl).getContainerId());;
+        //System.out.println("request "+cl.getrequestId()+" is added to exec list of container "+ ((ServerlessRequest) cl).getContainerId());;
         usedPes += cl.getNumberOfPes();
-        vm.addToVmTaskExecutionMap((ServerlessTasks)cl,vm);
+        vm.addToVmTaskExecutionMap((ServerlessRequest)cl,vm);
         return getEstimatedFinishTime(rcl, getPreviousTime());
     }
 
@@ -154,11 +139,17 @@ public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynam
         currentCpus = cpus;
         double timeSpan = currentTime - getPreviousTime();
         double nextEvent = Double.MAX_VALUE;
-        List<ResCloudlet> cloudletsToFinish = new ArrayList<>();
+        List<ResCloudlet> requestsToFinish = new ArrayList<>();
 
         for (ResCloudlet rcl : getCloudletExecList()) {
+
+//            if(rcl.getCloudlet().getCloudletId()==14 && x==1){
+//                System.out.println("debug");
+//                x++;
+//
+//            }
             rcl.updateCloudletFinishedSoFar((long) (timeSpan
-                    * getTotalCurrentAllocatedMipsForCloudlet(rcl, getPreviousTime()) * Consts.MILLION));
+                    * rcl.getCloudlet().getNumberOfPes()*((ServerlessRequest)(rcl.getCloudlet())).getUtilizationOfCpu()*((ServerlessRequest)(rcl.getCloudlet())).getContainerMIPS()*Consts.MILLION));
 
         }
         if (getCloudletExecList().size() == 0 && getCloudletWaitingList().size() == 0) {
@@ -172,14 +163,14 @@ public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynam
         for (ResCloudlet rcl : getCloudletExecList()) {
             // finished anyway, rounding issue...
             if (rcl.getRemainingCloudletLength() == 0) { // finished: remove from the list
-                cloudletsToFinish.add(rcl);
+                requestsToFinish.add(rcl);
                 finished++;
                 pesFreed+=rcl.getNumberOfPes();
             }
         }
         usedPes -=pesFreed;
 
-        for (ResCloudlet rgl : cloudletsToFinish) {
+        for (ResCloudlet rgl : requestsToFinish) {
             getCloudletExecList().remove(rgl);
             cloudletFinish(rgl);
         }
@@ -190,21 +181,21 @@ public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynam
                 toRemove.clear();
                 for (ResCloudlet rcl : getCloudletWaitingList()) {
                     if ((currentCpus - usedPes) >= rcl.getNumberOfPes()) {
-                        if(rcl.getCloudlet().getCloudletId()==815){
-                            System.out.println(CloudSim.clock()+" cloudlet #815 running: Debug");
-                        }
+//                        if(rcl.getCloudlet().getCloudletId()==815){
+//                            System.out.println(CloudSim.clock()+" request #815 running: Debug");
+//                        }
                         rcl.setCloudletStatus(Cloudlet.INEXEC);
-                        //vm.getRunningCloudletStack().push((ServerlessTasks) rcl.getCloudlet());
+                        //vm.getRunningrequestStack().push((ServerlessRequest) rcl.getrequest());
                         boolean added = false;
-                        for(int x=0; x< vm.getRunningCloudletList().size(); x++){
-                            if((((ServerlessTasks) rcl.getCloudlet()).getArrivalTime()+((ServerlessTasks) rcl.getCloudlet()).getMaxExecTime()<=vm.getRunningCloudletList().get(x).getArrivalTime()+vm.getRunningCloudletList().get(x).getMaxExecTime())){
-                                vm.getRunningCloudletList().add(x,((ServerlessTasks) rcl.getCloudlet()));
+                        for(int x=0; x< vm.getRunningRequestList().size(); x++){
+                            if((((ServerlessRequest) rcl.getCloudlet()).getArrivalTime()+((ServerlessRequest) rcl.getCloudlet()).getMaxExecTime()<=vm.getRunningRequestList().get(x).getArrivalTime()+vm.getRunningRequestList().get(x).getMaxExecTime())){
+                                vm.getRunningRequestList().add(x,((ServerlessRequest) rcl.getCloudlet()));
                                 added = true;
                                 break;
                             }
                         }
                         if(added == false){
-                            vm.getRunningCloudletList(). add((ServerlessTasks) rcl.getCloudlet());
+                            vm.getRunningRequestList(). add((ServerlessRequest) rcl.getCloudlet());
                         }
                         for (int k = 0; k < rcl.getNumberOfPes(); k++) {
                             rcl.setMachineAndPeId(0, i);
@@ -212,7 +203,7 @@ public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynam
                         getCloudletExecList().add(rcl);
 
                         /** To enable average latency of application */
-                        vm.addToVmTaskExecutionMap((ServerlessTasks)rcl.getCloudlet(),vm);
+                        vm.addToVmTaskExecutionMap((ServerlessRequest)rcl.getCloudlet(),vm);
                         usedPes += rcl.getNumberOfPes();
                         toRemove.add(rcl);
                         break;
@@ -232,7 +223,7 @@ public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynam
                 nextEvent = estimatedFinishTime;
             }
 
-            ServerlessTasks task = (ServerlessTasks)(rcl.getCloudlet());
+            ServerlessRequest task = (ServerlessRequest)(rcl.getCloudlet());
             /** Record the longest remaining execution time of the container*/
             containerQueueTime += task.getMaxExecTime()+ task.getArrivalTime()-CloudSim.clock();
             if (task.getMaxExecTime()+ task.getArrivalTime()-CloudSim.clock()> longestRunTimeContainer) {
@@ -241,7 +232,7 @@ public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynam
         }
 
         for (ResCloudlet rcl : getCloudletWaitingList()) {
-            ServerlessTasks task = (ServerlessTasks)(rcl.getCloudlet());
+            ServerlessRequest task = (ServerlessRequest)(rcl.getCloudlet());
             containerQueueTime += task.getMaxExecTime();
             /** Record the longest remaining execution time of the container*/
             if (task.getMaxExecTime()+ task.getArrivalTime()-CloudSim.clock()> longestRunTimeContainer) {
@@ -256,19 +247,19 @@ public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynam
         setPreviousTime(currentTime);
 
 
-        cloudletsToFinish.clear();
+        requestsToFinish.clear();
 
         return nextEvent;
     }
 
     @Override
-    public Cloudlet cloudletCancel(int cloudletId) {
+    public Cloudlet cloudletCancel(int requestId) {
         boolean found = false;
         int position = 0;
 
         // First, looks in the finished queue
         for (ResCloudlet rcl : getCloudletFinishedList()) {
-            if (rcl.getCloudletId() == cloudletId) {
+            if (rcl.getCloudletId() == requestId) {
                 found = true;
                 break;
             }
@@ -283,7 +274,7 @@ public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynam
         position = 0;
         found = false;
         for (ResCloudlet rcl : getCloudletExecList()) {
-            if (rcl.getCloudletId() == cloudletId) {
+            if (rcl.getCloudletId() == requestId) {
                 found = true;
                 break;
             }
@@ -305,7 +296,7 @@ public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynam
         position = 0;
         found = false;
         for (ResCloudlet rcl : getCloudletWaitingList()) {
-            if (rcl.getCloudletId() == cloudletId) {
+            if (rcl.getCloudletId() == requestId) {
                 found = true;
                 break;
             }
@@ -326,7 +317,7 @@ public class ServerlessCloudletScheduler extends ContainerCloudletSchedulerDynam
         found = false;
         position = 0;
         for (ResCloudlet rcl : getCloudletPausedList()) {
-            if (rcl.getCloudletId() == cloudletId) {
+            if (rcl.getCloudletId() == requestId) {
                 found = true;
                 rcl.setCloudletStatus(Cloudlet.CANCELED);
                 break;

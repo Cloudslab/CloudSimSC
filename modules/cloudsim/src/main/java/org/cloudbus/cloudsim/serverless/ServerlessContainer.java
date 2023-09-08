@@ -4,9 +4,7 @@ import org.cloudbus.cloudsim.container.core.Container;
 import org.cloudbus.cloudsim.container.schedulers.ContainerCloudletScheduler;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class ServerlessContainer extends Container {
     /**
@@ -20,44 +18,70 @@ public class ServerlessContainer extends Container {
      * @param bw
      * @param size
      * @param containerManager
-     * @param containerCloudletScheduler
+     * @param containerrequestScheduler
      * @param schedulingInterval
      */
 
     /**
      * The pending task list for the container
      */
-    private  ArrayList<ServerlessTasks> pendingTasks = new ArrayList<>();
+    private  ArrayList<ServerlessRequest> pendingTasks = new ArrayList<>();
     /**
      * The running task list for the container
      */
-    private  ArrayList<ServerlessTasks> runningTasks = new ArrayList<>();
+    private  ArrayList<ServerlessRequest> runningTasks = new ArrayList<>();
+
+    /**
+     * The running task list for the container
+     */
+    private  ArrayList<ServerlessRequest> finishedTasks = new ArrayList<>();
     /**
      * Container type
      */
     private  String functionType = null;
     boolean newContainer = false;
-    public boolean reschedule = false;
-    public ServerlessContainer(int id, int userId, String type, double mips, int numberOfPes, int ram, long bw, long size, String containerManager, ContainerCloudletScheduler containerCloudletScheduler, double schedulingInterval, boolean newCont, boolean reschedule) {
-        super(id, userId, mips, numberOfPes, ram, bw, size, containerManager, containerCloudletScheduler, schedulingInterval);
+    private boolean reschedule = false;
+    private boolean idling = false;
+
+    private double startTime = 0;
+    private double finishTime = 0;
+    private double idleStartTime = 0;
+    public ServerlessContainer(int id, int userId, String type, double mips, int numberOfPes, int ram, long bw, long size, String containerManager, ContainerCloudletScheduler containerRequestScheduler, double schedulingInterval, boolean newCont, boolean idling, boolean reschedule, double idleStartTime, double startTime, double finishTime) {
+        super(id, userId, mips, numberOfPes, ram, bw, size, containerManager, containerRequestScheduler, schedulingInterval);
         this.newContainer = newCont;
         setReschedule(reschedule);
+        setIdling(idling);
         setType(type);
+        setIdleStartTime(idleStartTime);
     }
     public void setReschedule(boolean reschedule){this.reschedule = reschedule;}
+    public void setIdling(boolean idling){this.idling = idling;}
+
+    public void setIdleStartTime(double time){this.idleStartTime = time;}
+    public void setStartTime(double time){this.startTime = time;}
+    public void setFinishTime(double time){this.finishTime = time;}
     public void setType(String type){this.functionType = type;}
-    public void setPendingTask(ServerlessTasks task){
+    public void setPendingTask(ServerlessRequest task){
         pendingTasks.add(task);
     }
-    public void setRunningTask(ServerlessTasks task){runningTasks.add(task); }
+    public void setRunningTask(ServerlessRequest task){runningTasks.add(task); }
+
+    public void setfinishedTask(ServerlessRequest task){finishedTasks.add(task); }
     public boolean getReschedule() {return reschedule;}
-    public ServerlessTasks getPendingTask(int index){
+    public boolean getIdling() {return idling;}
+    public double getIdleStartTime(){return idleStartTime;}
+    public double getStartTime(){return startTime;}
+    public double getFinishTime(){return finishTime;}
+    public ServerlessRequest getPendingTask(int index){
         return pendingTasks.get(index);
     }
-    public ServerlessTasks getRunningTask(int index){
+    public ServerlessRequest getRunningTask(int index){
         return runningTasks.get(index);
     }
-    public ArrayList<ServerlessTasks> getRunningTasks(){
+    public ArrayList<ServerlessRequest> getfinishedTasks(){
+        return finishedTasks;
+    }
+    public ArrayList<ServerlessRequest> getRunningTasks(){
         return runningTasks;
     }
     public String getType() {return functionType;}
@@ -67,7 +91,7 @@ public class ServerlessContainer extends Container {
 
     public double updateContainerProcessing(double currentTime, List<Double> mipsShare, ServerlessInvoker vm) {
         if (mipsShare != null) {
-            return ((ServerlessCloudletScheduler) getContainerCloudletScheduler()).updateContainerProcessing(currentTime, mipsShare,vm);
+            return ((ServerlessRequestScheduler) getContainerCloudletScheduler()).updateContainerProcessing(currentTime, mipsShare,vm);
         }
         return 0.0;
     }

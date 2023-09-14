@@ -359,21 +359,6 @@ public class ServerlessInvoker extends PowerContainerVm {
         double newMIPS = newRam / this.getRam() * this.getTotalMips();*/
         System.out.println("Container #"+container.getId()+" originally has "+container.getMips()+" MIPS and "+container.getRam()+" ram");
 
-//        double maxRemainingCPUQuota = this.getMips()-container.getMips();
-//        double maxQuotaAddition = Math.min(maxRemainingCPUQuota, this.getAvailableMips());
-//        System.out.println("Max CPU uota addition is "+ maxQuotaAddition);
-//        double newMIPS=0;
-//        if(cl.getPriority()==2) {
-//            newMIPS = container.getMips() + this.getMips() * Constants.CPU_QUOTA_INCREMENT_LOW;
-//
-//        }
-//        else{
-//            newMIPS = container.getMips() + this.getMips() * Constants.CPU_QUOTA_INCREMENT_HIGH;
-//        }
-//        if(newMIPS>container.getMips()+maxQuotaAddition){
-////            return false;
-//            newMIPS = container.getMips()+maxQuotaAddition;
-//        }
         float newRam = (float)(container.getRam()+ memChange);
         double newMIPS= container.getMips() + cpuChange;
         System.out.println("Vm Available ram : "+getContainerRamProvisioner().getAvailableVmRam()+" Requested new additional ram for container: "+memChange);

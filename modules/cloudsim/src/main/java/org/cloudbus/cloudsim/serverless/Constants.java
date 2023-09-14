@@ -126,20 +126,20 @@ public class Constants {
      * Name of the file containing function requests list.
      */
 
-    public static final String FUNCTION_REQUESTS_FILENAME = "D:\\OneDrive - The University of Melbourne\\UniMelb\\Studying\\Serverless simulator\\CloudSimServerless\\modules\\cloudsim\\src\\main\\java\\org\\cloudbus\\cloudsim\\serverless\\Real_trace_test2_small.csv";
+//    public static final String FUNCTION_REQUESTS_FILENAME = "D:\\OneDrive - The University of Melbourne\\UniMelb\\Studying\\Serverless simulator\\CloudSimServerless\\modules\\cloudsim\\src\\main\\java\\org\\cloudbus\\cloudsim\\serverless\\Real_trace_test2_small.csv";
 
-//    public static final String FUNCTION_REQUESTS_FILENAME = "Real_trace_test2.csv";
+    public static final String FUNCTION_REQUESTS_FILENAME = "Real_trace_test2.csv";
 
     /**
      * Algorithm specific parameters
      */
     public static final double overUtilizationThreshold = 0.80;
     public static final double underUtilizationThreshold = 0.70;
-    public static final double containerScaleCPUThreshold = 0.40;
+    public static final double containerScaleCPUThreshold = 0.20;
     public static final boolean containerConcurrency = true;
     public static final boolean functionAutoScaling = true;
-    public static final boolean functionHorizontalAutoscaling = true;
-    public static final boolean functionVerticalAutoscaling = false;
+    public static final boolean functionHorizontalAutoscaling = false;
+    public static final boolean functionVerticalAutoscaling = true;
     public static final boolean scalePerRequest = false;
     public static final String vmSelectionAlgo = "BPBF";
     public static final String horScalingLogic = "cpuThreshold";

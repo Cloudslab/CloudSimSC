@@ -51,7 +51,9 @@ public class FunctionScheduler extends PowerContainerAllocationPolicy {
     }
 
     @Override
-
+    /**
+     * Insert the policy for selecting a VM for a container
+     */
     public ContainerVm findVmForContainer(Container container) {
         ServerlessInvoker selectedVm = null;
         boolean vmSelected = false;
@@ -109,11 +111,6 @@ public class FunctionScheduler extends PowerContainerAllocationPolicy {
 //                        vmSelected = true;
                         break;
                     }
-//                    if (request.getReschedule()) {
-//                        if (tempSelectedVm == (ServerlessInvoker) (ContainerVmList.getById(getVmsCreatedList(), request.getVmId()))) {
-//                            continue;
-//                        }
-//                    }
                 }
                 break;
             }

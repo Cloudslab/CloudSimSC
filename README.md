@@ -23,7 +23,7 @@ CloudSimSC is developed in [the Cloud Computing and Distributed Systems (CLOUDS)
 
 The downloaded package contains all the source code, examples.
 
-# Publications #
+# References #
 
   * Anupama Mampage, Shanika Karunasekera, and Rajkumar Buyya, ”Deadline-aware dynamic resource management in serverless computing environments”, Proceedings of the 21st IEEE/ACM International Symposium on Cluster, Cloud and Internet Computing (CCGrid), Pages: 483-492, Melbourne, Australia, May 10-13, 2021
 

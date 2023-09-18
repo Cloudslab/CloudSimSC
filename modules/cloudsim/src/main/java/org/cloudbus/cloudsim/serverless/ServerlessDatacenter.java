@@ -13,6 +13,13 @@ import org.cloudbus.cloudsim.core.SimEvent;
 import java.text.DecimalFormat;
 import java.util.*;
 
+/**
+ * Datacenter class for CloudSimSC extension. This class represents the physical infrastructure of the service provider
+ *
+ * @author Anupama Mampage
+ * Created on 3/25/2023
+ */
+
 public class ServerlessDatacenter extends PowerContainerDatacenterCM {
     private static final DecimalFormat df = new DecimalFormat("0.00");
     /**
@@ -83,11 +90,7 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
         super(name, characteristics, vmAllocationPolicy, containerAllocationPolicy, storageList, schedulingInterval, experimentName, logAddress, vmStartupDelay, containerStartupDelay);
         tasksWaitingToReschedule = new HashMap<Integer, ServerlessRequest>();
         setMonitoring(monitor);
-//        setContainerAllocationPolicy(containerAllocationPolicy);
         autoScaler = new FunctionAutoScaler(this);
-
-
-//        setRequestLoadBalancerR(loadBalancer);
 
     }
 
@@ -110,9 +113,6 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
         return monitoring;
     }
 
-//    public FunctionScheduler getContainerAllocationPolicy() {
-//        return fnsched;
-//    }
 
     public void setMonitoring(boolean monitor) {
         this.monitoring = monitor;
@@ -121,17 +121,11 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
         this.requestLoadBalancer = lb;
     }
 
-//    public void setContainerAllocationPolicy(FunctionScheduler scheduler) {
-//        fnsched = scheduler;
-//    }
 
 
     @Override
     protected void processOtherEvent(SimEvent ev) {
         switch (ev.getTag()) {
-//            case CloudSimSCTags.DEADLINE_CHECKPOINT:
-//                processDeadlineCheckpoint(ev, false);
-//                break;
             case CloudSimTags.CONTAINER_DESTROY:
                 processContainerDestroy(ev, false);
                 break;
@@ -173,12 +167,9 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
     /** Process event to destroy a container */
     public void processContainerDestroy(SimEvent ev, boolean ack){
         Container container = (Container) ev.getData();
-        if (Constants.containerIdlingEnabled){
-//            if(container.getId()==1 && CloudSim.clock()>12){
-//                System.out.println("debug");
-//            }
+        if (Constants.CONTAINER_IDLING_ENABLED){
 //            Log.printConcatLine(CloudSim.clock(), " checking to destroy container ", container.getId());
-            if (Math.round(CloudSim.clock()*100000)/100000 - Math.round(((ServerlessContainer)container).getIdleStartTime()*100000)/100000 == Constants.containerIdlingTime){
+            if (Math.round(CloudSim.clock()*100000)/100000 - Math.round(((ServerlessContainer)container).getIdleStartTime()*100000)/100000 == Constants.CONTAINER_IDLING_TIME){
                 ServerlessInvoker vm = (ServerlessInvoker)container.getVm();
                 if(vm!=null) {
                     getContainerAllocationPolicy().deallocateVmForContainer(container);
@@ -252,9 +243,6 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
         Log.printLine(String.format("In processVmcreate in serverlessDC to create vm #%s", containerVm.getId()));
 
         boolean result = getVmAllocationPolicy().allocateHostForVm(containerVm);
-//        if(containerVm.getId()==12){
-//            System.out.println("d");
-//        }
 
         if (ack) {
             int[] data = new int[3];
@@ -283,17 +271,11 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
                 containerVm.setBeingInstantiated(false);
             }
 
-            /*((ServerlessInvoker)containerVm).getVmUpTime().put("In", (double) 0);
-            ((ServerlessInvoker)containerVm).getVmUpTime().put("Out", (double) 0);
-            ((ServerlessInvoker)containerVm).inTime = CloudSim.clock();
-            ((ServerlessInvoker)containerVm).outTime = CloudSim.clock();*/
-
-
 
             containerVm.updateVmProcessing(CloudSim.clock(), getVmAllocationPolicy().getHost(containerVm).getContainerVmScheduler()
                     .getAllocatedMipsForContainerVm(containerVm));
 
-            if(Constants.monitoring) {
+            if(Constants.MONITORING) {
 
                 send(containerVm.getUserId(), Constants.CPU_USAGE_MONITORING_INTERVAL, CloudSimSCTags.RECORD_CPU_USAGE, containerVm);
             }
@@ -333,10 +315,6 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
                         vm.offTime += (CloudSim.clock() - vm.getRecordTime());
                         vm.setRecordTime(CloudSim.clock());
 
-                            /*double outTimeRecorded = (vm.getVmUpTime()).get("Out");
-                             (vm.getVmUpTime()).put("Out",outTimeRecorded+CloudSim.clock()-vm.outTime);*/
-                        //                         vm.outTime = CloudSim.clock();
-                        //                         vm.inTime = CloudSim.clock();
                     }
                 }
                 data[0] = vm.getId();
@@ -349,9 +327,7 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
                 if (container.isBeingInstantiated()) {
                     container.setBeingInstantiated(false);
                 }
-                /*if(container.getId()==2){
-                    System.out.println("Debug");
-                }*/
+
                 ((ServerlessContainer) container).updateContainerProcessing(CloudSim.clock(), getContainerAllocationPolicy().getContainerVm(container).getContainerScheduler().getAllocatedMipsForContainer(container), vm);
                 vm.setFunctionContainerMapPending(container, ((ServerlessContainer) container).getType());
                 send(ev.getSource(), Constants.CONTAINER_STARTTUP_DELAY, containerCloudSimTags.CONTAINER_CREATE_ACK, data);
@@ -369,9 +345,7 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
 
         @Override
         public void updateCloudletProcessing(){
-//            if(CloudSim.clock() > 12){
-//                System.out.println("debug");
-//            }
+
             // if some time passed since last processing
             // R: for term is to allow loop at simulation start. Otherwise, one initial
             // simulation step is skipped and schedulers are not properly initialized
@@ -387,10 +361,6 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
                     }
                 }
 
-                // gurantees a minimal interval before scheduling the event
-            /*if (smallerTime < CloudSim.clock() + CloudSim.getMinTimeBetweenEvents() + 0.01) {
-                smallerTime = CloudSim.clock() + CloudSim.getMinTimeBetweenEvents() + 0.01;
-            }*/
                 if (smallerTime != Double.MAX_VALUE) {
                     schedule(getId(), (smallerTime - CloudSim.clock()), CloudSimTags.VM_DATACENTER_EVENT);
                 }
@@ -398,19 +368,16 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
 
                 /**Destroy idling containers if this is a DC_EVENT       */
 
-                if(!Constants.functionAutoScaling){
+                if(!Constants.FUNCTION_AUTOSCALING){
                     destroyIdleContainers();
                 }
 
 
 
                 /**Create online bin        */
-//                createOnlineVmBin();
 
 
             }
-//            DC_event = false;
-
 
         }
 
@@ -439,10 +406,8 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
                 data[0] = getId();
                 data[1] = cl.getCloudletId();
 
-                // unique tag = operation tag
                 int tag = CloudSimTags.CLOUDLET_SUBMIT_ACK;
                 sendNow(cl.getUserId(), tag, data);
-//                }
 
                 sendNow(cl.getUserId(), CloudSimTags.CLOUDLET_RETURN, cl);
 
@@ -469,9 +434,6 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
             vm = (ServerlessInvoker)host.getContainerVm(vmId, userId);
             container = vm.getContainer(containerId, userId);
 
-//            if(cl.getCloudletId()==14){
-//                System.out.println("here");
-//            }
 
             estimatedFinishTime =((ServerlessRequestScheduler) container.getContainerCloudletScheduler()).requestSubmit(cl, vm, (ServerlessContainer)(container));
             System.out.println("Est finish time of function# "+ cl.getCloudletId()+" at the beginning is "+ estimatedFinishTime);
@@ -479,8 +441,6 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
 
             /**Remove the new request's container from removal list*/
             getContainersToDestroy().remove(container);
-            //System.out.println("Submit: Removed from destroy list container "+container.getId());
-            // if this request is in the exec queue
             if (estimatedFinishTime > 0.0 && !Double.isInfinite(estimatedFinishTime)) {
                 estimatedFinishTime += fileTransferTime;
 
@@ -501,7 +461,7 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
         }
 
         checkCloudletCompletion();
-        if (Constants.functionAutoScaling && !autoScalingInitialized){
+        if (Constants.FUNCTION_AUTOSCALING && !autoScalingInitialized){
             autoScalingInitialized = true;
             autoScaler.scaleFunctions();
             destroyIdleContainers();
@@ -530,10 +490,8 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
                     while (container.getContainerCloudletScheduler().isFinishedCloudlets()) {
                         Cloudlet cl = container.getContainerCloudletScheduler().getNextFinishedCloudlet();
                         if (cl != null) {
-//                            if(cl.getCloudletId()==15){
-//                                System.out.println("debug");
-//                            }
-                            Pair data = new Pair<>(cl, vm);
+                            Map.Entry<Cloudlet, ContainerVm> data =  new AbstractMap.SimpleEntry<>(cl, vm);
+//                            Pair data = new Pair<>(cl, vm);
                             for(int x=0; x<((ServerlessInvoker)vm).getRunningRequestList().size();x++){
                                 if(((ServerlessInvoker)vm).getRunningRequestList().get(x)==(ServerlessRequest)cl){
                                     ((ServerlessInvoker)vm).getRunningRequestList().remove(x);
@@ -554,21 +512,14 @@ public class ServerlessDatacenter extends PowerContainerDatacenterCM {
         while (!getContainersToDestroy().isEmpty()) {
             for (int x = 0; x < getContainersToDestroy().size(); x++) {
                 if (((ServerlessContainer) getContainersToDestroy().get(x)).newContainer) {
-//                    System.out.println("Container to be destroyed removed since new: "+e.getContainersToDestroy().get(x).getId());
-//                    getContainersToDestroy().remove(x);
                     ((ServerlessContainer)getContainersToDestroy().get(x)).setIdleStartTime(0);
                     continue;
                 }
-//                System.out.println(((ServerlessContainer)e.getContainersToDestroy().get(x)).newContainer);
-//                    System.out.println("Container to be destroyed: " + e.getContainersToDestroy().get(x).getId());
-                if(!Constants.containerIdlingEnabled){
+                if(!Constants.CONTAINER_IDLING_ENABLED){
                     sendNow(getId(), CloudSimTags.CONTAINER_DESTROY_ACK, getContainersToDestroy().get(x));
                 }
                 else {
-//                    if(((ServerlessContainer)getContainersToDestroy().get(x)).getId()==1 && CloudSim.clock() >12){
-//                        Log.print("destroy cotnainer "+ String.valueOf(((ServerlessContainer)getContainersToDestroy().get(x)).getId())+ "at "+ String.valueOf(CloudSim.clock()+Constants.containerIdlingTime));
-//                    }
-                    send(getId(), Constants.containerIdlingTime, CloudSimTags.CONTAINER_DESTROY_ACK, getContainersToDestroy().get(x));
+                    send(getId(), Constants.CONTAINER_IDLING_TIME, CloudSimTags.CONTAINER_DESTROY_ACK, getContainersToDestroy().get(x));
                 }
 
             }

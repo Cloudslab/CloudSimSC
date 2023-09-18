@@ -8,6 +8,14 @@ import org.cloudbus.cloudsim.Cloudlet;
 import java.util.ArrayList;
 import java.util.List;
 
+
+/**
+ * Request scheduler class for CloudSimSC extension.
+ *
+ * @author Anupama Mampage
+ * Created on 3/25/2023
+ */
+
 public class ServerlessRequestScheduler extends ContainerCloudletSchedulerDynamicWorkload {
     int x=0;
     private double longestRunTimeContainer = 0;
@@ -93,7 +101,7 @@ public class ServerlessRequestScheduler extends ContainerCloudletSchedulerDynami
 
 //    Is called each time a request is finally submitted to DC
     public double requestSubmit(ServerlessRequest cl, ServerlessInvoker vm, ServerlessContainer cont) {
-        if (!Constants.containerConcurrency || Constants.scalePerRequest){
+        if (!Constants.CONTAINER_CONCURRENCY || Constants.SCALE_PER_REQUEST){
         setTotalCurrentAllocatedMipsShareForRequests(cl);
         setTotalCurrentAllocatedRamForRequests(cl);
         }
@@ -102,18 +110,6 @@ public class ServerlessRequestScheduler extends ContainerCloudletSchedulerDynami
         vm.getRunningRequestList(). add((ServerlessRequest) cl);
         rcl.setCloudletStatus(Cloudlet.INEXEC);
         vm.getRunningRequestList(). add((ServerlessRequest) cl);
-        //vm.getRunningrequestStack().push((ServerlessRequest)cl);
-//            boolean added = false;
-//            for(int x=0; x< vm.getRunningrequestList().size(); x++){
-//                if((((ServerlessRequest) cl).getArrivalTime()+((ServerlessRequest) cl).getMaxExecTime()<=vm.getRunningrequestList().get(x).getArrivalTime()+vm.getRunningrequestList().get(x).getMaxExecTime())){
-//                    vm.getRunningrequestList().add(x,((ServerlessRequest) cl));
-//                    added = true;
-//                    break;
-//                }
-//            }
-//            if(added == false){
-//                vm.getRunningrequestList(). add((ServerlessRequest) cl);
-//            }
         for (int i = 0; i < cl.getNumberOfPes(); i++) {
             rcl.setMachineAndPeId(0, i);
         }
@@ -143,11 +139,6 @@ public class ServerlessRequestScheduler extends ContainerCloudletSchedulerDynami
 
         for (ResCloudlet rcl : getCloudletExecList()) {
 
-//            if(rcl.getCloudlet().getCloudletId()==14 && x==1){
-//                System.out.println("debug");
-//                x++;
-//
-//            }
             rcl.updateCloudletFinishedSoFar((long) (timeSpan
                     * rcl.getCloudlet().getNumberOfPes()*((ServerlessRequest)(rcl.getCloudlet())).getUtilizationOfCpu()*((ServerlessRequest)(rcl.getCloudlet())).getContainerMIPS()*Consts.MILLION));
 
@@ -216,9 +207,6 @@ public class ServerlessRequestScheduler extends ContainerCloudletSchedulerDynami
 
         for (ResCloudlet rcl : getCloudletExecList()) {
             double estimatedFinishTime = getEstimatedFinishTime(rcl, currentTime);
-            /*if (estimatedFinishTime - currentTime < CloudSim.getMinTimeBetweenEvents()) {
-                estimatedFinishTime = currentTime + CloudSim.getMinTimeBetweenEvents();
-            }*/
             if (estimatedFinishTime < nextEvent) {
                 nextEvent = estimatedFinishTime;
             }

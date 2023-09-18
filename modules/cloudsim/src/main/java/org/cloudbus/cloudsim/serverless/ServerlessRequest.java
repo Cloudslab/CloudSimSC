@@ -4,6 +4,13 @@ import org.cloudbus.cloudsim.UtilizationModel;
 import org.cloudbus.cloudsim.container.core.ContainerCloudlet;
 import org.cloudbus.cloudsim.core.CloudSim;
 
+/**
+ * Serverless request class for CloudSimSC extension. This class represents a single user request
+ *
+ * @author Anupama Mampage
+ * Created on 3/25/2023
+ */
+
 public class ServerlessRequest extends ContainerCloudlet {
 
     private String requestType = null;

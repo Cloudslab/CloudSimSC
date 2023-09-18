@@ -11,6 +11,13 @@ import org.cloudbus.cloudsim.core.CloudSim;
 
 import java.util.*;
 
+/**
+ * VM class for CloudSimSC extension.
+ *
+ * @author Anupama Mampage
+ * Created on 3/25/2023
+ */
+
 public class ServerlessInvoker extends PowerContainerVm {
     /**
      * The container type map of vm - contains the function type and the container list
@@ -291,10 +298,10 @@ public class ServerlessInvoker extends PowerContainerVm {
                 double time = ((ServerlessContainer) container).updateContainerProcessing(currentTime, getContainerScheduler().getAllocatedMipsForContainer(container), this);
 
                 /** If no future event, destroy this container if auto-scaling is not enabled*/
-                if((time==0 || time == Double.MAX_VALUE) && !Constants.functionAutoScaling){
+                if((time==0 || time == Double.MAX_VALUE) && !Constants.FUNCTION_AUTOSCALING){
                     if (!((ServerlessContainer) container).newContainer && !((ServerlessContainer) container).getIdling()) {
                             ((ServerlessDatacenter)(this.getHost().getDatacenter())).getContainersToDestroy().add(container);
-                            if (Constants.containerIdlingEnabled) {
+                            if (Constants.CONTAINER_IDLING_ENABLED) {
                                 ((ServerlessContainer) container).setIdleStartTime(CloudSim.clock());
                                 ((ServerlessContainer) container).setIdling(true);
                             }
@@ -302,9 +309,6 @@ public class ServerlessInvoker extends PowerContainerVm {
 
 
                     }
-//                    ((ServerlessDatacenter)(this.getHost().getDatacenter())).getContainersToDestroy().add(container);
-//                    ((ServerlessContainer) container).setIdleStartTime(CloudSim.clock());
-//                    System.out.println(CloudSim.clock()+" Debug:While processing destroy container "+container.getId());
                 }
                 if (time > 0.0 && time < smallerTime) {
                     smallerTime = time;
@@ -323,15 +327,10 @@ public class ServerlessInvoker extends PowerContainerVm {
             ((ServerlessDatacenter)(this.getHost().getDatacenter())).getRunTimeVm().put(this.getId(),longestRunTimeVm);
 
             /**Update CPU Utilization of Vm */
-//            addToCPUUtilizationLog(this.getAvailableMips()/this.getTotalMips());
-
-//            Log.printLine("ContainerVm: The Smaller time is:......" + smallerTime);
 
             returnTime= smallerTime;
         }
-//        if (mipsShare != null) {
-//            return getContainerScheduler().updateVmProcessing(currentTime, mipsShare);
-//        }
+
         else
             returnTime= 0.0;
 
@@ -365,10 +364,6 @@ public class ServerlessInvoker extends PowerContainerVm {
         System.out.println("Vm Available  MIPS : "+this.getAvailableMips()+" Requested additional MIPS: "+ cpuChange*container.getNumberOfPes());
 
         if(container.getMips()+cpuChange>this.getMips()){
-            //System.out.println(CloudSim.clock()+ " Debug:Container has reached max MIPS of "+ this.getMips());
-            /*if(container.getId()==5){
-                System.out.println("Debug");
-            }*/
             return false;
         }
         else {

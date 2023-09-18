@@ -9,6 +9,14 @@ import org.cloudbus.cloudsim.core.CloudSim;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Container scheduler class for CloudSimSC extension.
+ *
+ * @author Anupama Mampage
+ * Created on 3/25/2023
+ */
+
+
 public class ServerlessContainerScheduler extends ContainerSchedulerTimeSharedOverSubscription {
     /**
      * Instantiates a new container scheduler time shared.
@@ -55,20 +63,6 @@ public class ServerlessContainerScheduler extends ContainerSchedulerTimeSharedOv
             mipsShareRequested.add(newMips);
             totalRequestedMips += newMips;
         }
-//        mipsShareRequested.add(newMips);
-//        List<Double> mipsShareRequestedCapped = new ArrayList<Double>();
-//        double peMips = getPeCapacity();
-//
-//        if (newMips > peMips) {
-//            mipsShareRequestedCapped.add(peMips);
-//            totalRequestedMips += peMips;
-//        } else {
-//            mipsShareRequestedCapped.add(newMips);
-//            totalRequestedMips += newMips;
-//        }
-
-
-
 
         if (getContainersMigratingIn().contains(containerUid)) {
             // the destination host only experience 10% of the migrating VM's MIPS
@@ -84,10 +78,6 @@ public class ServerlessContainerScheduler extends ContainerSchedulerTimeSharedOv
         if (getAvailableMips() >= (totalRequestedMips-oldMips)) {
             List<Double> mipsShareAllocated = new ArrayList<Double>();
             for (Double mipsRequested : mipsShareRequested) {
-//                if (getContainersMigratingOut().contains(containerUid)) {
-//                    // performance degradation due to migration = 10% MIPS
-//                    mipsRequested *= 0.9;
-//                } else
                 if (!getContainersMigratingIn().contains(containerUid)) {
                     // the destination host only experience 10% of the migrating VM's MIPS
                     mipsShareAllocated.add(mipsRequested);
@@ -101,8 +91,6 @@ public class ServerlessContainerScheduler extends ContainerSchedulerTimeSharedOv
             }
 
             getMipsMap().put(containerUid, mipsShareAllocated);
-//            getMipsMap().put(containerUid, mipsShareRequestedCapped);
-//            System.out.println("Available: "+ getAvailableMips()+" Requested "+ totalRequestedMips);
             setAvailableMips(getAvailableMips()+oldMips - totalRequestedMips);
             /**Debugging */
             System.out.println("Debugging: Now total remaining MIPS of all vm pes is "+getAvailableMips());

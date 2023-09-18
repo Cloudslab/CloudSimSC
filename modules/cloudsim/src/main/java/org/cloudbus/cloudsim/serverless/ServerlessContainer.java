@@ -6,6 +6,13 @@ import org.cloudbus.cloudsim.container.schedulers.ContainerCloudletScheduler;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Container class for CloudSimSC extension.
+ *
+ * @author Anupama Mampage
+ * Created on 3/25/2023
+ */
+
 public class ServerlessContainer extends Container {
     /**
      * Creates a new Container object.

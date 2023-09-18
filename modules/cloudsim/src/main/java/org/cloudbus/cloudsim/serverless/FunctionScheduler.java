@@ -38,7 +38,6 @@ public class FunctionScheduler extends PowerContainerAllocationPolicy {
         }
         if (containerVm.containerCreate(container)) { // if vm has been succesfully created in the host
             getContainerTable().put(container.getUid(), containerVm);
-//                container.setVm(containerVm);
             Log.formatLine(
                     "%.2f: Container #" + container.getId() + " has been allocated to the VM #" + containerVm.getId(),
                     CloudSim.clock());
@@ -57,7 +56,7 @@ public class FunctionScheduler extends PowerContainerAllocationPolicy {
     public ContainerVm findVmForContainer(Container container) {
         ServerlessInvoker selectedVm = null;
         boolean vmSelected = false;
-        switch (Constants.vmSelectionAlgo) {
+        switch (Constants.VM_SELECTION_ALGO) {
             /** Selecting Vm using RR method **/
             case "RR": {
                 for (int x = selectedVmIndex; x <= getContainerVmList().size(); x++) {
@@ -67,11 +66,6 @@ public class FunctionScheduler extends PowerContainerAllocationPolicy {
                         vmSelected = true;
                         break;
                     }
-//                    if (request.getReschedule()) {
-//                        if (tempSelectedVm == (ServerlessInvoker) (ContainerVmList.getById(getContainerVmList(), request.getVmId()))) {
-//                            continue;
-//                        }
-//                    }
 
                 }
 
@@ -83,11 +77,7 @@ public class FunctionScheduler extends PowerContainerAllocationPolicy {
                             vmSelected = true;
                             break;
                         }
-//                        if (request.getReschedule()) {
-//                            if (tempSelectedVm == (ServerlessInvoker) (ContainerVmList.getById(getVmsCreatedList(), request.getVmId()))) {
-//                                continue;
-//                            }
-//                        }
+
                     }
                 }
                 System.out.println(CloudSim.clock() + " >>>>>>>>>>>>>>Debug:Broker: Selected VM is # " + selectedVmIndex + " for container # " + container.getId() + " under RR method");
@@ -149,7 +139,7 @@ public class FunctionScheduler extends PowerContainerAllocationPolicy {
             }
 
 
-            System.out.println(CloudSim.clock() + " >>>>>>>>>>>>>>Debug:Broker: Selected VM is # " + selectedVm.getId() + " for container # " + container.getId() + " under "+Constants.vmSelectionAlgo+" method");
+            System.out.println(CloudSim.clock() + " >>>>>>>>>>>>>>Debug:Broker: Selected VM is # " + selectedVm.getId() + " for container # " + container.getId() + " under "+Constants.VM_SELECTION_ALGO+" method");
 
         }
 

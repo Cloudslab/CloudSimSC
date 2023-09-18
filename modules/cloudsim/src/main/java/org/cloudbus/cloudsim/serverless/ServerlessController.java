@@ -12,21 +12,23 @@ import org.cloudbus.cloudsim.core.SimEvent;
 import java.util.*;
 
 /**
- * Broker class for CloudSimServerless extension. This class represents a broker (Service Provider)
+ * Broker class for CloudSimSC extension. This class represents a broker (Service Provider)
  * who uses the Cloud data center.
  *
  * @author Anupama Mampage
+ * Created on 3/25/2023
  */
 
 public class ServerlessController extends ContainerDatacenterBroker {
-
+    /**
+     * The idling VM list.
+     */
     protected List<ServerlessInvoker> vmIdleList = new ArrayList<>();
     protected List<Container> containerList = new ArrayList<Container>();
     /**
      * The containers destroyed list.
      */
     protected List<? extends ServerlessContainer> containerDestroyedList;
-    protected List<ServerlessRequest> requestList = new ArrayList<ServerlessRequest>();
     private static int overBookingfactor = 0;
     /**
      * The arrival time of each serverless request
@@ -62,18 +64,14 @@ public class ServerlessController extends ContainerDatacenterBroker {
     public int exsitingContCount = 0;
     public int noOfTasks = 0;
     public int noOfTasksReturned = 0;
-    private String vmSelectionMode= "RR";
-    private String subMode= "NEWBM";
+
     /** Vm index for selecting Vm in round robin fashion **/
     private int selectedVmIndex = 1;
-    /** The map of tasks to reschedule with the new containerId. */
-    private static Map<ServerlessRequest, Integer> tasksToReschedule = new HashMap<>();
 
     @Override
     protected void processOtherEvent(SimEvent ev){
         switch (ev.getTag()) {
             case CloudSimTags.CLOUDLET_SUBMIT:
-//                processrequestSubmit(ev);
                 submitRequest(ev);
                 break;
             case CloudSimTags.CLOUDLET_SUBMIT_ACK:
@@ -157,9 +155,6 @@ public class ServerlessController extends ContainerDatacenterBroker {
 
 
     protected void createContainer(ServerlessRequest cl, String requestId, int brokerId) {
-//        double containerMips = 0;
-/**     container MIPS is set as specified for that container type  **/
-//        containerMips = Constants.CONTAINER_MIPS[Integer.parseInt(requestId)];
         ServerlessContainer container = new ServerlessContainer(containerId, brokerId, requestId, cl.getContainerMIPS(), cl.getNumberOfPes(), cl.getContainerMemory(), Constants.CONTAINER_BW, Constants.CONTAINER_SIZE,"Xen", new ServerlessRequestScheduler(cl.getContainerMIPS(), cl.getNumberOfPes()), Constants.SCHEDULING_INTERVAL, true, false, false, 0, 0, 0);
         getContainerList().add(container);
         if (!(cl ==null)){
@@ -178,9 +173,6 @@ public class ServerlessController extends ContainerDatacenterBroker {
         double containerMips = Double.parseDouble(data[2]);
         int containerRAM = (int)Double.parseDouble(data[3]);
         int containerPES = (int)Double.parseDouble(data[4]);
-        if(containerId==52 ){
-            System.out.println("debug");
-        }
         ServerlessContainer container = new ServerlessContainer(containerId, brokerId, requestId, containerMips, containerPES, containerRAM, Constants.CONTAINER_BW, Constants.CONTAINER_SIZE,"Xen", new ServerlessRequestScheduler(containerMips, containerPES), Constants.SCHEDULING_INTERVAL, true, false, false, 0, 0, 0);
         getContainerList().add(container);
         container.setWorkloadMips(container.getMips());
@@ -193,10 +185,6 @@ public class ServerlessController extends ContainerDatacenterBroker {
 
     protected void submitContainer(ServerlessRequest cl, Container container){
         container.setWorkloadMips(container.getMips());
-//        if(cl.getReschedule()){
-//            sendNow(getDatacenterIdsList().get(0), containerCloudSimTags.CONTAINER_SUBMIT_FOR_RESCHEDULE, container);
-//        }
-//        else
         sendNow(getDatacenterIdsList().get(0), containerCloudSimTags.CONTAINER_SUBMIT, container);
 
     }
@@ -394,8 +382,8 @@ public class ServerlessController extends ContainerDatacenterBroker {
     @Override
 
     protected void processCloudletReturn(SimEvent ev) {
-
-        Pair data = (Pair) ev.getData();
+        Map.Entry<ContainerCloudlet,ContainerVm > data =  (Map.Entry<ContainerCloudlet,ContainerVm >)ev.getData();
+//        Pair data = (Pair) ev.getData();
         ContainerCloudlet request = (ContainerCloudlet) data.getKey();
 //        if(request.getCloudletId()==11){
 //            System.out.println("Debug");

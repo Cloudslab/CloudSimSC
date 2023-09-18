@@ -128,30 +128,30 @@ public class Constants {
 
 //    public static final String FUNCTION_REQUESTS_FILENAME = "D:\\OneDrive - The University of Melbourne\\UniMelb\\Studying\\Serverless simulator\\CloudSimServerless\\modules\\cloudsim\\src\\main\\java\\org\\cloudbus\\cloudsim\\serverless\\Real_trace_test2_small.csv";
 
-    public static final String FUNCTION_REQUESTS_FILENAME = "Real_trace_test2.csv";
+    public static final String FUNCTION_REQUESTS_FILENAME = "Real_trace_test1.csv";
 
     /**
      * Algorithm specific parameters
      */
-    public static final double overUtilizationThreshold = 0.80;
-    public static final double underUtilizationThreshold = 0.70;
-    public static final double containerScaleCPUThreshold = 0.20;
-    public static final boolean containerConcurrency = true;
-    public static final boolean functionAutoScaling = true;
-    public static final boolean functionHorizontalAutoscaling = false;
-    public static final boolean functionVerticalAutoscaling = true;
-    public static final boolean scalePerRequest = false;
-    public static final String vmSelectionAlgo = "BPBF";
-    public static final String horScalingLogic = "cpuThreshold";
-    public static final String scalingTriggerLogic = "cpuThreshold";
-    public static final String containerSelectionAlgo = "FF";
-    public static final int max_reschedule_tries = 8;
-    public static final boolean monitoring = true;
-    public static final int maxReplicas = 50;
+    public static final double OVER_UTILIZATION_THRESHOLD = 0.80;
+    public static final double UNDER_UTILIZATION_THRESHOLD = 0.70;
+    public static final double CONTAINER_SCALE_CPU_THRESHOLD = 0.40;
+    public static final boolean CONTAINER_CONCURRENCY = false;
+    public static final boolean FUNCTION_AUTOSCALING = false;
+    public static final boolean FUNCTION_HORIZONTAL_AUTOSCALING = false;
+    public static final boolean FUNCTION_VERTICAL_AUTOSCALING = false;
+    public static final boolean SCALE_PER_REQUEST = true;
+    public static final String VM_SELECTION_ALGO = "BPFF";
+    public static final String HOR_SCALING_LOGIC = "cpuThreshold";
+    public static final String SCALING_TRIGGER_LOGIC = "cpuThreshold";
+    public static final String CONTAINER_SELECTION_ALGO = "FF";
+    public static final int MAX_RESCHEDULE_TRIES = 8;
+    public static final boolean MONITORING = true;
+    public static final int MAX_REPLICAS = 50;
 
-    public static final boolean containerIdlingEnabled = false;
+    public static final boolean CONTAINER_IDLING_ENABLED = false;
 
-    public static final int containerIdlingTime = 5;
+    public static final int CONTAINER_IDLING_TIME = 5;
 
 
 }

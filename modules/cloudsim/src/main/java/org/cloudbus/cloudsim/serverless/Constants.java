@@ -119,14 +119,12 @@ public class Constants {
 
 
     public static final int NUMBER_HOSTS = 5;
-    public static final int NUMBER_VMS = 12;
+    public static final int NUMBER_VMS = 20;
     public static final int NUMBER_requestS = 5;
 
     /**
      * Name of the file containing function requests list.
      */
-
-//    public static final String FUNCTION_REQUESTS_FILENAME = "D:\\OneDrive - The University of Melbourne\\UniMelb\\Studying\\Serverless simulator\\CloudSimServerless\\modules\\cloudsim\\src\\main\\java\\org\\cloudbus\\cloudsim\\serverless\\Real_trace_test2_small.csv";
 
     public static final String FUNCTION_REQUESTS_FILENAME = "Real_trace_test1.csv";
 

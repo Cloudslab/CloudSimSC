@@ -21,7 +21,7 @@ CloudSimSC is developed in [the Cloud Computing and Distributed Systems (CLOUDS)
 
 # Download #
 
-The downloaded package contains all the source code, examples.
+The downloaded package contains all the source code, examples, with the CloudSimSC package included in the path /modules/cloudsim/src/main/java/org/cloudbus/cloudsim/serverless/
 
 # References #
 

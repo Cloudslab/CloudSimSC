@@ -1,6 +1,5 @@
 package org.cloudbus.cloudsim.serverless;
 
-import javafx.util.Pair;
 import org.cloudbus.cloudsim.*;
 import org.cloudbus.cloudsim.container.core.*;
 import org.cloudbus.cloudsim.container.lists.ContainerList;

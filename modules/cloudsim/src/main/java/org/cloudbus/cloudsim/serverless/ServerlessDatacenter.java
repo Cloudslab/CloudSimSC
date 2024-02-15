@@ -1,6 +1,5 @@
 package org.cloudbus.cloudsim.serverless;
 
-import javafx.util.Pair;
 import org.cloudbus.cloudsim.Cloudlet;
 import org.cloudbus.cloudsim.Log;
 import org.cloudbus.cloudsim.Storage;
